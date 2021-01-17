@@ -10,6 +10,12 @@ const timeZone = "Europe/London";
 
 // Show match round name
 const showRound = false;
+// Show current playing time on live matches
+const showLivetime = false;
+// Show league subtitle - for leagues with more than one table, e.g. "MLS (EASTERN)"
+const showLeagueSubtitle = false;
+// Show match kick off time in 12 hour clock format
+const twelveHourClock = false;
 
 // Background Image
 const backgroundImage = "background.png"; // not required - needs to be saved on iCloud Drive/Scriptable/Futcal with this name and extension
@@ -20,13 +26,18 @@ const leagueTitleColor = Color.red(); // Color for league table title - default 
 const positionColor = Color.red(); // Color to highlight current position in table - default same as calendar widget
 const liveColor = Color.red(); // Color for live dot on Live events
 
+// By default both views are shown
+let showMatchesView = true;
+let showTableView = true;
+
 // iCloud directory to store cached data / background image
 const folder = "Futcal";
 
 // APIs
-const apiBaseUrl = "https://www.fotmob.com";
-const teamOverviewUrl = apiBaseUrl + "/teams?id=" + teamId + "&tab=overview&type=team&timeZone=" + timeZone;
-const fixtureDetailsUrl = apiBaseUrl + "/matchDetails?matchId=";
+const apiBaseUrl = encodeURI("https://www.fotmob.com");
+const teamOverviewUrl = encodeURI(apiBaseUrl + "/teams?id=" + teamId + "&tab=overview&type=team&timeZone=" + timeZone);
+const teamFixturesUrl = encodeURI(apiBaseUrl + "/teams/" + teamId + "/fixtures");
+const fixtureDetailsUrl = encodeURI(apiBaseUrl + "/matchDetails?matchId=");
 
 // Language settings
 let preferredLanguage = Device.preferredLanguages()[0];
@@ -63,7 +74,22 @@ try {
 }
 let leagueTable = teamOverview.tableData.tables[0].table;
 let leagueTitle = teamOverview.tableData.tables[0].leagueName;
-let leagueOverviewUrl = apiBaseUrl + teamOverview.tableData.tables[0].pageUrl;
+// If league table is not found assume it is a special case with more than one table available
+if (!leagueTable) {
+  let teamFound;
+  let tableIndex = 0;
+  for (let i = 0; i < teamOverview.tableData.tables[0].tables.length; i += 1) {
+    teamFound = (teamOverview.tableData.tables[0].tables[i].table).findIndex(obj => obj.id == teamId);
+    if (teamFound != -1) {
+      tableIndex = i;
+      break;
+    }
+  }
+  leagueTable = teamOverview.tableData.tables[0].tables[tableIndex].table;
+  leagueTitle = showLeagueSubtitle ? leagueTitle + " (" + teamOverview.tableData.tables[0].tables[tableIndex].leagueName + ") " : leagueTitle;
+}
+
+let leagueOverviewUrl = encodeURI(apiBaseUrl + teamOverview.tableData.tables[0].pageUrl);
 let leagueTableUrl = leagueOverviewUrl.replace("overview", "table");
 // Check if team is on league (in case we are using offline data and team configured is new)
 let teamOnLeague = leagueTable[leagueTable.findIndex(obj => obj.id == teamId)];
@@ -89,7 +115,6 @@ if (config.runsInWidget) {
     let widget = await createWidget();
     Script.setWidget(widget);
     Script.complete();
-    await widget.presentMedium();
 } else {
     // Run widget on Scriptable app
     let widget = await createWidget();
@@ -101,46 +126,64 @@ if (config.runsInWidget) {
 
 // Create widget UI
 async function createWidget() {
+  let paddingLeft = 14;
+  let paddingRight = 13;
+  let paddingTop = 15.5;
+  let paddingBottom = 16;
+  // By default small widgets will show the Table View, in order to see the Matches View edit the widget and add "matches" in the Parameter box
+  if (config.widgetFamily === "small") {
+    showMatchesView = args.widgetParameter === "matches";
+    showTableView = args.widgetParameter !== "matches";
+    if (showMatchesView) {
+      paddingLeft = 10;
+      paddingRight = 10;
+      paddingBottom = 20;
+    } else {
+      paddingLeft = 0;
+      paddingRight = 0;
+    }
+  }
+
     let widget = new ListWidget();
     widget.backgroundColor = backgroundColor;
     // Use background image if available
     setWidgetBackground(widget, backgroundImage);
-    widget.setPadding(15, 14, 16, 13);
-    widget.addSpacer(0.5);
+    widget.setPadding(paddingTop, paddingLeft, paddingBottom, paddingRight);
+
     const globalStack = widget.addStack();
 
-    const leftStack = globalStack.addStack();
-    leftStack.layoutVertically();
+    if(showMatchesView) {
+      widget.url = teamFixturesUrl;
+      await addWidgetMatches(globalStack);
+    }
 
-    // space between the two halves
-    globalStack.addSpacer(null);
-
-    const rightStack = globalStack.addStack();
-    rightStack.layoutVertically();
-
-    // Left half
-    await addWidgetMatches(leftStack);
-
-    // Right half
-    await addWidgetTable(rightStack);
+    if (showTableView) {
+      widget.url = leagueTableUrl;
+      await addWidgetTable(globalStack);
+    }
 
     return widget;
 }
 
 // Create matches
 async function addWidgetMatches(stack) {
-    stack.addSpacer(1.5);
-    await addWidgetMatch(stack, previousFixture, "Previous");
-    stack.addSpacer(9.5);
+  const matchesStack = stack.addStack();
+  matchesStack.url = teamFixturesUrl;
+  // Move Matches stack to the left
+  stack.addSpacer();
+  matchesStack.layoutVertically();
+    matchesStack.addSpacer(1.5);
+    await addWidgetMatch(matchesStack, previousFixture, "Previous");
+    matchesStack.addSpacer(9.5);
     // Add title
     let title = dictionary.matchTitleNext;
-    let titleStack = stack.addStack();
+    let titleStack = matchesStack.addStack();
     titleStack.addSpacer(2);
     let titleText = titleStack.addText(title.toUpperCase());
     titleText.textColor = Color.gray();
     titleText.font = Font.semiboldSystemFont(11);
-    stack.addSpacer(3);
-    await addWidgetMatch(stack, nextFixture, "Next");
+    matchesStack.addSpacer(3);
+    await addWidgetMatch(matchesStack, nextFixture, "Next");
 }
 
 // Create match
@@ -153,7 +196,7 @@ async function addWidgetMatch(stack, fixture, title) {
     // If match is in the future make it gray
     let eventColor = Color.gray();
     if (fixture != undefined) {
-        eventStack.url = apiBaseUrl + fixture.pageUrl;
+        eventStack.url = encodeURI(apiBaseUrl + fixture.pageUrl);
         let fixtureDetails;
         fixtureDetails = await getFixtureDetails(title, fixture.id);
         if (fixtureDetails.header.status.started) {
@@ -193,9 +236,14 @@ async function addWidgetMatch(stack, fixture, title) {
         textStack.layoutVertically();
         let leagueStack = textStack.addStack();
         leagueStack.centerAlignContent();
-        let leagueInfo = leagueStack.addText(shortenLeagueRound(fixtureDetails.content.matchFacts.infoBox.Tournament.text));
+        let leagueInfo = leagueStack.addText(shortenLeagueRound(fixtureDetails.content.matchFacts.infoBox.Tournament.text)[0]);
         leagueInfo.font = Font.semiboldSystemFont(13);
         leagueInfo.lineLimit = 1;
+        if (showRound && shortenLeagueRound(fixtureDetails.content.matchFacts.infoBox.Tournament.text)[1]) {
+          let roundInfo = leagueStack.addText(shortenLeagueRound(fixtureDetails.content.matchFacts.infoBox.Tournament.text)[1]);
+          roundInfo.font = Font.semiboldSystemFont(13);
+          roundInfo.lineLimit = 1;
+        }
         textStack.addSpacer(1);
 
         // Add match info
@@ -218,6 +266,15 @@ async function addWidgetMatch(stack, fixture, title) {
 
         // Add date/time or result
         if (!fixtureDetails.header.status.started) {
+          if (fixtureDetails.header.status.cancelled) {
+            // If match is cancelled show reason
+            let fullResultStack = textStack.addStack();
+            fullResultStack.centerAlignContent();
+            let resultStack = fullResultStack.addStack();
+            let result = resultStack.addText(replaceText(fixtureDetails.header.status.reason.long));
+            result.font = Font.regularSystemFont(12);
+            result.textColor = Color.gray();
+          } else {
             // If match is in the future show date and time
             let fullDateStack = textStack.addStack();
             fullDateStack.centerAlignContent();
@@ -227,9 +284,10 @@ async function addWidgetMatch(stack, fixture, title) {
             matchDate.textColor = Color.gray();
             dateStack.addSpacer(5);
             let timeStack = fullDateStack.addStack();
-            let matchTime = timeStack.addText(fixture.status.startTimeStr);
+            let matchTime = timeStack.addText(formatTime(new Date(fixtureDetails.content.matchFacts.infoBox["Match Date"])));
             matchTime.font = Font.regularSystemFont(12);
             matchTime.textColor = Color.gray();
+          }
         } else {
             // If match is in the past or ongoing show result
             let fullResultStack = textStack.addStack();
@@ -241,10 +299,16 @@ async function addWidgetMatch(stack, fixture, title) {
             resultStack.addSpacer(5);
             let outcomeStack = fullResultStack.addStack();
             if (fixtureDetails.header.status.started && !fixtureDetails.header.status.finished) {
+              if (showLivetime) {
+                let liveTime = outcomeStack.addText("(" + replaceText(fixtureDetails.header.status.liveTime.short) + ")");
+                liveTime.font = Font.regularSystemFont(12);
+                liveTime.textColor = Color.gray();
+                outcomeStack.addSpacer(5);
+            }
                 // If match is ongoing add circle symbol
                 let liveText = outcomeStack.addText("●");
-                liveText.textColor = liveColor;
                 liveText.font = Font.semiboldSystemFont(11);
+                liveText.textColor = liveColor;
             }
         }
     } else {
@@ -256,27 +320,33 @@ async function addWidgetMatch(stack, fixture, title) {
         let noData = noDataStack.addText("No matches available");
         noData.lineLimit = 1;
         noData.font = Font.regularSystemFont(12);
+        textStack.addSpacer(1);
         let space1 = textStack.addText("");
         space1.font = Font.semiboldSystemFont(13);
+        textStack.addSpacer(1);
         let space2 = textStack.addText("");
         space2.font = Font.regularSystemFont(12);
     }
 }
 
 async function addWidgetTable(stack) {
-    stack.url = leagueTableUrl;
+  const tableFullStack = stack.addStack();
+  tableFullStack.layoutVertically();
+    tableFullStack.url = leagueTableUrl;
     // Add league title
-    stack.addSpacer(2.5);
-    const leagueLine = stack.addStack();
+    tableFullStack.addSpacer(2.5);
+    const leagueLine = tableFullStack.addStack();
     leagueLine.addSpacer(4);
     let leagueTitleText = leagueLine.addText(leagueTitle.toUpperCase());
     leagueTitleText.textColor = leagueTitleColor;
     leagueTitleText.font = Font.semiboldSystemFont(11);
     leagueTitleText.lineLimit = 1;
-    stack.addSpacer(1);
+    tableFullStack.addSpacer(1);
 
     // Add table
-    const tableStack = stack.addStack();
+    const hSpacing = config.widgetFamily === "small" ? 17 : 19.2;
+    const vSpacing = 18.4;
+    const tableStack = tableFullStack.addStack();
     tableStack.spacing = 2;
     const tableInfo = getTable(leagueTable, teamLeaguePosition);
     const table = tableInfo[0];
@@ -286,7 +356,7 @@ async function addWidgetTable(stack) {
         rowStack.layoutVertically();
         for (let j = 0; j < table[i].length; j += 1) {
             let valueStack = rowStack.addStack();
-            valueStack.size = new Size(19.2, 18.4);
+            valueStack.size = new Size(hSpacing, vSpacing);
             valueStack.centerAlignContent();
             if (i == 0 && j == highlighted) {
                 // Highlight selected team position on first column
@@ -319,39 +389,31 @@ function getTable(leagueTable, teamLeaguePosition) {
         [dictionary.tableHeaderLosses],
         [dictionary.tableHeaderPoints]
     ];
+    const teamsToShow = Math.min(5, leagueTable.length);
+    const teamsAbove = Math.ceil((teamsToShow - 1) / 2);
+    const teamsBelow = Math.floor((teamsToShow - 1) / 2);
     // By default show 2 teams above selected team and 2 teams below selected team (5 rows in total)
-    let initial = teamLeaguePosition - 2;
-    let final = teamLeaguePosition + 2;
+    let initial = teamLeaguePosition - teamsAbove;
+    let final = teamLeaguePosition + teamsBelow;
     // By default highlight selected team, in the middle row
-    let highlighted = 3;
-
-    if (teamLeaguePosition == -1) {
-        // If team selected not found show 5 top teams and do not highlight any
-        initial = 1;
-        final = initial + 4;
-        highlighted = -1;
-        console.log("League Table Error: Team not found in the selected league, showing top teams.");
-    } else if (teamLeaguePosition == 1) {
-        // If team selected in first place show 5 top teams and highlight first row
-        initial = 1;
-        final = initial + 4;
-        highlighted = 1;
-    } else if (teamLeaguePosition == 2) {
-        // If team selected in second place show 5 top teams and highlight second row
-        initial = 1;
-        final = initial + 4;
-        highlighted = 2;
-    } else if (teamLeaguePosition == leagueTable.length) {
-        // If team selected in last place show 5 last teams and highlight last row
-        initial = leagueTable.length - 4;
-        final = leagueTable.length;
-        highlighted = 5;
-    } else if (teamLeaguePosition == leagueTable.length - 1) {
-        // If team selected in second to last place show 5 last teams and highlight second to last row
-        initial = leagueTable.length - 4;
-        final = leagueTable.length;
-        highlighted = 4;
-    }
+    let highlighted = teamsToShow - teamsBelow;
+      if (teamLeaguePosition == -1) {
+          // If team selected not found show 5 top teams and do not highlight any
+          initial = 1;
+          final = initial + 4;
+          highlighted = -1;
+          console.log("League Table Error: Team not found in the selected league, showing top teams.");
+        } else if (teamLeaguePosition <= teamsAbove) {
+            // If team selected in first place show 5 top teams and highlight first row
+            initial = 1;
+            final = teamsToShow <= leagueTable.length ? teamsToShow : leagueTable.length;
+            highlighted = teamLeaguePosition;
+          } else if (teamLeaguePosition > leagueTable.length - teamsBelow) {
+              // If team selected in first place show 5 top teams and highlight first row
+              initial = leagueTable.length - teamsToShow >= 0 ? leagueTable.length - teamsToShow + 1 : 1;
+              final = leagueTable.length;
+              highlighted = teamLeaguePosition - initial + 1;
+      }
 
     for (let i = initial; i < final + 1; i += 1) {
         // Add table data, row by row
@@ -369,7 +431,7 @@ function getTable(leagueTable, teamLeaguePosition) {
 // Return the team badge
 async function getTeamImg(position, id) {
     // Set image URL, using xsmall images
-    let imageUrl = apiBaseUrl + "/images/team/" + id + "_xsmall";
+    let imageUrl = encodeURI(apiBaseUrl + "/images/team/" + id + "_xsmall");
     let image;
     try {
         image = await new Request(imageUrl).loadImage();
@@ -441,6 +503,23 @@ function formatDate(date) {
     }
 }
 
+function formatTime(date) {
+  var hours = date.getHours();
+  var minutes = date.getMinutes();
+  minutes = minutes < 10 ? '0' + minutes : minutes;
+  var time;
+  if (twelveHourClock) {
+    var ampm = hours >= 12 ? 'pm' : 'am';
+    hours = hours % 12;
+    hours = hours ? hours : 12; // the hour '0' should be '12'
+    time = hours + ':' + minutes + ampm;
+  }
+  else {
+    time = hours + ':' + minutes;
+  }
+  return time;
+}
+
 // Check if date is today
 function isToday(date) {
     const today = new Date();
@@ -471,22 +550,20 @@ function shortenLeagueRound(leagueRoundName) {
     // Split League and Round information
     let leagueName = leagueRoundName.split(" - ")[0];
     let roundName = leagueRoundName.split(" - ")[1];
-    // Clean up round name
-    if (roundName.includes("Round")) {
-        if (roundName.includes("of")) {
-            // Replace "Round of X" with "1/X"
-            roundName = "1/" + roundName.split("Round of ")[1];
-        } else {
-            // Replace "Round X" with "RX" (language dependent)
-            roundName = dictionary.matchRound + roundName.split("Round ")[1];
-        }
-    }
-    if (showRound) {
-        // Return "League (Round)"
-        return replaceText(leagueName) + " (" + replaceText(roundName) + ")";
+    if (roundName) {
+      // Clean up round name
+      if (roundName.includes("Round")) {
+          if (roundName.includes("of")) {
+              // Replace "Round of X" with "1/X"
+              roundName = "1/" + roundName.split("Round of ")[1];
+          } else {
+              // Replace "Round X" with "RX" (language dependent)
+              roundName = dictionary.matchRound + roundName.split("Round ")[1];
+          }
+      }
+      return [replaceText(leagueName), " (" + replaceText(roundName) + ")"];
     } else {
-        // Return "League"
-        return replaceText(leagueName);
+      return [replaceText(leagueName), false];
     }
 }
 
@@ -499,10 +576,16 @@ function replaceText(string) {
         "Cup": dictionary.cup,
         "League Cup": dictionary.leagueCup,
         "Super Cup": dictionary.superCup,
+        "Club Friendlies": dictionary.clubFriendlies,
         // Rounds
         "Quarter-Final": dictionary.quarterFinal,
         "Semi-Final": dictionary.semiFinal,
         "Final": dictionary.final,
+        // Cancel reasons
+        "Postponed": dictionary.postponed,
+        "Cancelled": dictionary.cancelled,
+        //Live time
+        "HT": dictionary.halfTime,
         // Teams
         "Sporting CP": "Sporting",
         "Famalicao": "Famalicão",
@@ -537,6 +620,7 @@ function getDictionary(lang) {
             cup: "Cup",
             leagueCup: "League Cup",
             superCup: "Super Cup",
+            clubFriendlies: "Friendly",
             quarterFinal: "QF",
             semiFinal: "SF",
             final: "F",
@@ -544,6 +628,9 @@ function getDictionary(lang) {
             matchRound: "R",
             matchDateToday: "Today",
             matchDateTomorrow: "Tomorrow",
+            postponed: "Postponed",
+            cancelled: "Cancelled",
+            halfTime: "HT",
             tableHeaderTeam: "T",
             tableHeaderPlayed: "M",
             tableHeaderWins: "W",
@@ -560,6 +647,7 @@ function getDictionary(lang) {
             cup: "Taça",
             leagueCup: "Taça Liga",
             superCup: "Supertaça",
+            clubFriendlies: "Amigável",
             quarterFinal: "QF",
             semiFinal: "MF",
             final: "F",
@@ -567,6 +655,9 @@ function getDictionary(lang) {
             matchRound: "J",
             matchDateToday: "Hoje",
             matchDateTomorrow: "Amanhã",
+            postponed: "Adiado",
+            cancelled: "Cancelado",
+            halfTime: "Int",
             tableHeaderTeam: "E",
             tableHeaderPlayed: "J",
             tableHeaderWins: "V",
@@ -583,6 +674,7 @@ function getDictionary(lang) {
             cup: "Coupe",
             leagueCup: "League Cup",
             superCup: "Supercoupe",
+            clubFriendlies: "Amical",
             quarterFinal: "QF",
             semiFinal: "DF",
             final: "F",
@@ -590,6 +682,9 @@ function getDictionary(lang) {
             matchRound: "J",
             matchDateToday: "Aujourd'hui",
             matchDateTomorrow: "Demain",
+            postponed: "Reporté",
+            cancelled: "Annulé",
+            halfTime: "MT",
             tableHeaderTeam: "C",
             tableHeaderPlayed: "M",
             tableHeaderWins: "G",
@@ -606,6 +701,7 @@ function getDictionary(lang) {
             cup: "DFB-Pokal",
             leagueCup: "Ligapokal",
             superCup: "Supercup",
+            clubFriendlies: "Testspiel",
             quarterFinal: "VF",
             semiFinal: "HF",
             final: "F",
@@ -613,6 +709,9 @@ function getDictionary(lang) {
             matchRound: "S",
             matchDateToday: "Heute",
             matchDateTomorrow: "Morgen",
+            postponed: "Verlegt",
+            cancelled: "Abgesagt",
+            halfTime: "HZ",
             tableHeaderTeam: "M",
             tableHeaderPlayed: "S",
             tableHeaderWins: "G",
