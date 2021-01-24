@@ -2,113 +2,85 @@
 // These must be at the very top of the file. Do not edit.
 // icon-color: deep-green; icon-glyph: futbol;
 
-// Team selection
-const teamId = 9768;
+// Widget customisation
+const defaultSettings = {
+    teamId: 9768,
+    timeZone: "Europe/London",
 
-// Time zone selection
-const timeZone = "Europe/London";
+    language: "system",
 
-// Show match round name
-const showRound = false;
-// Show current playing time on live matches
-const showLivetime = false;
-// Show league subtitle - for leagues with more than one table, e.g. "MLS (EASTERN)"
-const showLeagueSubtitle = false;
-// Show match kick off time in 12 hour clock format
-const twelveHourClock = false;
+    smallWidgetView: args.widgetParameter ? args.widgetParameter : "table",
 
-// Background Image
-const backgroundImage = "background.png"; // not required - needs to be saved on iCloud Drive/Scriptable/Futcal with this name and extension
+    showRound: false,
+    twelveHourClock: false,
+    showLivetime: true,
+    showLeagueSubtitle: true,
 
-// UI colors
-const backgroundColor = Color.dynamic(new Color("#ffffff"), new Color("#1c1c1e")); // Color for background - default same as calendar widget
-const leagueTitleColor = Color.red(); // Color for league table title - default same as calendar widget
-const positionColor = Color.red(); // Color to highlight current position in table - default same as calendar widget
-const liveColor = Color.red(); // Color for live dot on Live events
+    backgroundColor: {
+        light: "#ffffff",
+        dark: "#1c1c1e"
+    },
+    leagueTitleColor: {
+        light: "#ff3b30",
+        dark: "#ff453a"
+    },
+    highlightedPositionColor: {
+        light: "#ff3b30",
+        dark: "#ff453a"
+    },
+    liveColor: {
+        light: "#ff3b30",
+        dark: "#ff453a"
+    }
+};
 
-// By default both views are shown
-let showMatchesView = true;
-let showTableView = true;
+// Create folder to store data
+let fm = FileManager.local();
+const iCloudUsed = fm.isFileStoredIniCloud(module.filename);
+fm = iCloudUsed ? FileManager.iCloud() : fm;
+const widgetFolder = "Futcal";
+const offlinePath = fm.joinPath(fm.documentsDirectory(), widgetFolder);
+if (!fm.fileExists(offlinePath)) fm.createDirectory(offlinePath);
 
-// iCloud directory to store cached data / background image
-const folder = "Futcal";
-
-// APIs
-const apiBaseUrl = encodeURI("https://www.fotmob.com");
-const teamOverviewUrl = encodeURI(apiBaseUrl + "/teams?id=" + teamId + "&tab=overview&type=team&timeZone=" + timeZone);
-const teamFixturesUrl = encodeURI(apiBaseUrl + "/teams/" + teamId + "/fixtures");
-const fixtureDetailsUrl = encodeURI(apiBaseUrl + "/matchDetails?matchId=");
-
-// Language settings
-let preferredLanguage = Device.preferredLanguages()[0];
-let lang = preferredLanguage.split("-")[0];
-let supportedLang = ["en", "pt", "fr", "de"];
-if (!(supportedLang.includes(lang))) {
-    lang = "en";
+// Get user settings
+let userSettings;
+const userSettingsOffline = "userSettings.json";
+if (!fm.fileExists(fm.joinPath(offlinePath, userSettingsOffline))) {
+    userSettings = defaultSettings;
+} else {
+    if (iCloudUsed) await fm.downloadFileFromiCloud(fm.joinPath(offlinePath, userSettingsOffline));
+    userSettings = JSON.parse(fm.readString(fm.joinPath(offlinePath, userSettingsOffline)));
 }
-let dictionary = getDictionary(lang);
 
-// Cache, to use in offline mode
-let fm = FileManager.iCloud();
-let offlinePath = fm.joinPath(fm.documentsDirectory(), folder);
-if (!fm.fileExists(offlinePath)) {
-    fm.createDirectory(offlinePath);
+// Get language settings
+const supportedLanguages = ["en", "pt", "fr", "de"];
+let language;
+let preferredLanguage;
+if (userSettings.language == "system") {
+    preferredLanguage = Device.preferredLanguages()[0];
+    language = preferredLanguage.split("-")[0];
+    if (!(supportedLanguages.includes(language))) language = "en";
+} else {
+    language = userSettings.language;
 }
+const dictionary = getDictionary(language);
+
+// Define FotMob API URLs
+const baseApiUrl = encodeURI("https://www.fotmob.com");
+const teamDataApiUrl = encodeURI(`${baseApiUrl}/teams?id=${userSettings.teamId}&tab=overview&type=team&timeZone=${userSettings.timeZone}`);
+const matchDetailsApiUrl = encodeURI(`${baseApiUrl}/matchDetails?matchId=`);
 
 // Get team data
-let teamOverview;
-try {
-    teamOverview = await new Request(teamOverviewUrl).loadJSON();
-    // If data successfully retrieved, write to cache
-    fm.writeString(fm.joinPath(offlinePath, "teamOverview.json"), JSON.stringify(teamOverview));
-} catch (err) {
-    console.log("Team Overview " + err + " Trying to read cached data.");
-    try {
-        // If data not successfully retrieved, read from cache
-        await fm.downloadFileFromiCloud(fm.joinPath(offlinePath, "teamOverview.json"));
-        let raw = fm.readString(fm.joinPath(offlinePath, "teamOverview.json"));
-        teamOverview = JSON.parse(raw);
-    } catch (err) {
-        console.log("Team Overview " + err);
-    }
-}
-let leagueTable = teamOverview.tableData.tables[0].table;
-let leagueTitle = teamOverview.tableData.tables[0].leagueName;
-// If league table is not found assume it is a special case with more than one table available
-if (!leagueTable) {
-  let teamFound;
-  let tableIndex = 0;
-  for (let i = 0; i < teamOverview.tableData.tables[0].tables.length; i += 1) {
-    teamFound = (teamOverview.tableData.tables[0].tables[i].table).findIndex(obj => obj.id == teamId);
-    if (teamFound != -1) {
-      tableIndex = i;
-      break;
-    }
-  }
-  leagueTable = teamOverview.tableData.tables[0].tables[tableIndex].table;
-  leagueTitle = showLeagueSubtitle ? leagueTitle + " (" + teamOverview.tableData.tables[0].tables[tableIndex].leagueName + ") " : leagueTitle;
-}
+const teamData = await getData(teamDataApiUrl, "teamData.json");
 
-let leagueOverviewUrl = encodeURI(apiBaseUrl + teamOverview.tableData.tables[0].pageUrl);
-let leagueTableUrl = leagueOverviewUrl.replace("overview", "table");
-// Check if team is on league (in case we are using offline data and team configured is new)
-let teamOnLeague = leagueTable[leagueTable.findIndex(obj => obj.id == teamId)];
-let teamLeaguePosition = -1;
-if (teamOnLeague != undefined) {
-    // If team found in league get team position
-    teamLeaguePosition = teamOnLeague.idx;
+// Set tap URLs
+const teamTapUrl = encodeURI(`${baseApiUrl}/teams/${userSettings.teamId}/overview`);
+const teamMatchesTapUrl = encodeURI(`${baseApiUrl}/teams/${userSettings.teamId}/fixtures`);
+let leagueTableTapUrl;
+if (teamData) {
+    const leagueOverviewUrl = encodeURI(`${baseApiUrl}${teamData.tableData.tables[0].pageUrl}`);
+    leagueTableTapUrl = leagueOverviewUrl.replace("overview", "table");
 }
-let teamFixtures = teamOverview.fixtures;
-// Find next match (first match not started and not cancelled)
-let nextFixtureIndex = teamFixtures.findIndex(obj => obj.notStarted && !obj.status.cancelled);
-let nextFixture = teamFixtures[nextFixtureIndex];
-// Assume previous match is the one before the next
-let previousFixtureIndex = nextFixtureIndex - 1;
-if (nextFixture == undefined) {
-    // If no next match available season is over, previous match is the last of the season, if exists
-    previousFixtureIndex = teamFixtures.length - 1;
-}
-let previousFixture = teamFixtures[previousFixtureIndex];
 
 // Run
 if (config.runsInWidget) {
@@ -116,262 +88,255 @@ if (config.runsInWidget) {
     Script.setWidget(widget);
     Script.complete();
 } else {
-    // Run widget on Scriptable app
     let widget = await createWidget();
     Script.complete();
     await widget.presentMedium();
 }
 
-// Functions
+// *** Functions *** //
 
 // Create widget UI
 async function createWidget() {
-  let paddingLeft = 14;
-  let paddingRight = 13;
-  let paddingTop = 15.5;
-  let paddingBottom = 16;
-  // By default small widgets will show the Table View, in order to see the Matches View edit the widget and add "matches" in the Parameter box
-  if (config.widgetFamily === "small") {
-    showMatchesView = args.widgetParameter === "matches";
-    showTableView = args.widgetParameter !== "matches";
-    if (showMatchesView) {
-      paddingLeft = 10;
-      paddingRight = 10;
-      paddingBottom = 20;
-    } else {
-      paddingLeft = 0;
-      paddingRight = 0;
-    }
-  }
-
     let widget = new ListWidget();
-    widget.backgroundColor = backgroundColor;
-    // Use background image if available
-    setWidgetBackground(widget, backgroundImage);
-    widget.setPadding(paddingTop, paddingLeft, paddingBottom, paddingRight);
+    widget.backgroundColor = Color.dynamic(new Color(userSettings.backgroundColor.light), new Color(userSettings.backgroundColor.dark));
+    setWidgetBackground(widget);
 
-    const globalStack = widget.addStack();
+    let showMatchesView = true;
+    let showTableView = true;
 
-    if(showMatchesView) {
-      widget.url = teamFixturesUrl;
-      await addWidgetMatches(globalStack);
+    let paddingLeft = 14;
+    let paddingRight = 13;
+    let paddingTop = 15.5;
+    let paddingBottom = 16;
+
+    if (teamData) {
+        // By default small widgets will show the Table View, in order to see the Matches View edit the widget and add "matches" in the Parameter box
+        if (config.widgetFamily === "small") {
+            if (userSettings.smallWidgetView === "matches") {
+                widget.url = teamMatchesTapUrl;
+                showTableView = false;
+
+                paddingLeft = 10;
+                paddingRight = 10;
+                paddingBottom = 20;
+            } else {
+                widget.url = leagueTableTapUrl;
+                showMatchesView = false;
+
+                paddingLeft = 0;
+                paddingRight = 0;
+            }
+        }
+        widget.setPadding(paddingTop, paddingLeft, paddingBottom, paddingRight);
+
+        const globalStack = widget.addStack();
+        globalStack.url = teamTapUrl;
+
+        if (showMatchesView) {
+            await addWidgetMatches(globalStack);
+        }
+        if (showTableView) {
+            await addWidgetTable(globalStack);
+        }
+    } else {
+        const offlineError = dictionary.nointernetConnection;
+        const errorStack = widget.addStack();
+        addFormattedText(errorStack, offlineError, Font.regularSystemFont(14), Color.gray(), null, true);
     }
-
-    if (showTableView) {
-      widget.url = leagueTableUrl;
-      await addWidgetTable(globalStack);
-    }
-
     return widget;
 }
 
-// Create matches
-async function addWidgetMatches(stack) {
-  const matchesStack = stack.addStack();
-  matchesStack.url = teamFixturesUrl;
-  // Move Matches stack to the left
-  stack.addSpacer();
-  matchesStack.layoutVertically();
+// Create matches view
+async function addWidgetMatches(globalStack) {
+    const teamMatches = teamData.fixtures;
+    // Find next match (first match not started and not cancelled)
+    const nextMatchIndex = teamMatches.findIndex(obj => obj.notStarted && !obj.status.cancelled);
+    const nextMatch = teamMatches[nextMatchIndex];
+    // Assume previous match is the one before the next
+    let previousMatchIndex = nextMatchIndex - 1;
+    if (nextMatch == undefined) {
+        // If no next match available season is over, previous match is the last of the season, if exists
+        previousMatchIndex = teamMatches.length - 1;
+    }
+    const previousMatch = teamMatches[previousMatchIndex];
+
+    const matchesStack = globalStack.addStack();
+    matchesStack.url = teamMatchesTapUrl;
+    globalStack.addSpacer();
+    matchesStack.layoutVertically();
     matchesStack.addSpacer(1.5);
-    await addWidgetMatch(matchesStack, previousFixture, "Previous");
+    await addWidgetMatch(matchesStack, previousMatch, "Previous");
     matchesStack.addSpacer(9.5);
-    // Add title
-    let title = dictionary.matchTitleNext;
-    let titleStack = matchesStack.addStack();
-    titleStack.addSpacer(2);
-    let titleText = titleStack.addText(title.toUpperCase());
-    titleText.textColor = Color.gray();
-    titleText.font = Font.semiboldSystemFont(11);
+    const matchesSeparatorStack = matchesStack.addStack();
+    matchesSeparatorStack.addSpacer(2);
+    const separatorValue = (dictionary.matchTitleNext).toUpperCase();
+    addFormattedText(matchesSeparatorStack, separatorValue, Font.semiboldSystemFont(11), Color.gray(), 1, false);
     matchesStack.addSpacer(3);
-    await addWidgetMatch(matchesStack, nextFixture, "Next");
+    await addWidgetMatch(matchesStack, nextMatch, "Next");
 }
 
-// Create match
-async function addWidgetMatch(stack, fixture, title) {
-    stack.addSpacer(2);
-    let eventStack = stack.addStack();
-    eventStack.size = new Size(0, 46);
-    // Set result color
-    let colorStack = eventStack.addStack();
-    // If match is in the future make it gray
-    let eventColor = Color.gray();
-    if (fixture != undefined) {
-        eventStack.url = encodeURI(apiBaseUrl + fixture.pageUrl);
-        let fixtureDetails;
-        fixtureDetails = await getFixtureDetails(title, fixture.id);
-        if (fixtureDetails.header.status.started) {
-            if (fixture.home.score == fixture.away.score) {
-                // If there is a draw make it yellow
-                eventColor = Color.yellow();
-            } else if ((fixtureDetails.header.teams[0].score > fixtureDetails.header.teams[1].score && fixture.home.id == teamId) ||
-                (fixtureDetails.header.teams[0].score < fixtureDetails.header.teams[1].score && fixture.away.id == teamId)) {
-                // If selected team is winning make it green
-                eventColor = Color.green();
+// Create specific match
+async function addWidgetMatch(matchesStack, match, title) {
+    matchesStack.addSpacer(2);
+    const matchStack = matchesStack.addStack();
+    matchStack.size = new Size(0, 46);
+
+    if (match != undefined) {
+        const matchTapUrl = encodeURI(`${baseApiUrl}${match.pageUrl}`);
+        matchStack.url = matchTapUrl;
+        const matchDetailsUrl = `${matchDetailsApiUrl}${match.id}`;
+        const matchDetailsOffline = `match${title}.json`;
+        const matchDetails = await getData(matchDetailsUrl, matchDetailsOffline);
+
+        let resultColor = Color.gray();
+        if (matchDetails.header.status.started) {
+            if (match.home.score == match.away.score) {
+                resultColor = Color.yellow();
+            } else if ((matchDetails.header.teams[0].score > matchDetails.header.teams[1].score && match.home.id == teamData.details.id) ||
+                (matchDetails.header.teams[0].score < matchDetails.header.teams[1].score && match.away.id == teamData.details.id)) {
+                resultColor = Color.green();
             } else {
-                // If selected team is losing make it red
-                eventColor = Color.red();
+                resultColor = Color.red();
             }
         }
-        // Draw left bar with result color
-        let drawContext = new DrawContext();
-        drawContext.size = new Size(10, 115);
-        drawContext.respectScreenScale = true;
-        drawContext.opaque = false;
-        drawContext.setStrokeColor(eventColor);
-        drawContext.setLineWidth(10);
-        const path = new Path();
-        path.move(new Point(5, 5));
-        path.addLine(new Point(5, 110));
-        drawContext.addPath(path);
-        drawContext.strokePath();
-        drawContext.setFillColor(eventColor);
-        drawContext.fillEllipse(new Rect(0, 0, 10, 10));
-        drawContext.fillEllipse(new Rect(0, 105, 10, 10));
-        const testImage = drawContext.getImage();
-        colorStack.addImage(testImage);
-        eventStack.addSpacer(5);
+        const matchResultBar = matchStack.addStack();
+        const resultBarImage = getResultBar(resultColor);
+        matchResultBar.addImage(resultBarImage);
+        matchStack.addSpacer(5);
 
-        // Add event league information
-        let textStack = eventStack.addStack();
-        textStack.layoutVertically();
-        let leagueStack = textStack.addStack();
-        leagueStack.centerAlignContent();
-        let leagueInfo = leagueStack.addText(shortenLeagueRound(fixtureDetails.content.matchFacts.infoBox.Tournament.text)[0]);
-        leagueInfo.font = Font.semiboldSystemFont(13);
-        leagueInfo.lineLimit = 1;
-        if (showRound && shortenLeagueRound(fixtureDetails.content.matchFacts.infoBox.Tournament.text)[1]) {
-          let roundInfo = leagueStack.addText(shortenLeagueRound(fixtureDetails.content.matchFacts.infoBox.Tournament.text)[1]);
-          roundInfo.font = Font.semiboldSystemFont(13);
-          roundInfo.lineLimit = 1;
+        // Add match information
+        const matchInfoStack = matchStack.addStack();
+        matchInfoStack.layoutVertically();
+        const matchInfoCompetitionStack = matchInfoStack.addStack();
+        matchInfoCompetitionStack.centerAlignContent();
+        const competitionValue = shortenLeagueRound(matchDetails.content.matchFacts.infoBox.Tournament.text);
+        const competitionNameValue = competitionValue[0];
+        addFormattedText(matchInfoCompetitionStack, competitionNameValue, Font.semiboldSystemFont(13), null, 1, false);
+        if (userSettings.showRound && competitionValue[1]) {
+            matchInfoCompetitionStack.addSpacer(3);
+            const competitionRoundValue = `(${competitionValue[1]})`;
+            addFormattedText(matchInfoCompetitionStack, competitionRoundValue, Font.semiboldSystemFont(13), null, 1, false);
         }
-        textStack.addSpacer(1);
+        matchInfoStack.addSpacer(1);
 
         // Add match info
-        let matchStack = textStack.addStack();
-        matchStack.centerAlignContent();
-        let homeNameStack = matchStack.addStack();
-        let homeName = homeNameStack.addText(replaceText(fixture.home.name));
-        homeName.lineLimit = 1;
-        homeName.font = Font.regularSystemFont(12);
-        let separatorStack = matchStack.addStack();
-        separatorStack.addSpacer(3);
-        let separator = separatorStack.addText('-');
-        separator.font = Font.regularSystemFont(12);
-        separatorStack.addSpacer(3);
-        let awayNameStack = matchStack.addStack();
-        let awayName = awayNameStack.addText(replaceText(fixture.away.name));
-        awayName.lineLimit = 1;
-        awayName.font = Font.regularSystemFont(12);
-        textStack.addSpacer(1);
+        const matchInfoTeamsStack = matchInfoStack.addStack();
+        matchInfoTeamsStack.centerAlignContent();
+        const teamsHomeValue = replaceText(match.home.name);
+        addFormattedText(matchInfoTeamsStack, teamsHomeValue, Font.regularSystemFont(12), null, 1, false);
+        matchInfoTeamsStack.addSpacer(3);
+        const teamsSeparatorValue = "-";
+        addFormattedText(matchInfoTeamsStack, teamsSeparatorValue, Font.regularSystemFont(12), null, null, false);
+        matchInfoTeamsStack.addSpacer(3);
+        const teamsAwayValue = replaceText(match.away.name);
+        addFormattedText(matchInfoTeamsStack, teamsAwayValue, Font.regularSystemFont(12), null, 1, false);
+        matchInfoStack.addSpacer(1);
 
         // Add date/time or result
-        if (!fixtureDetails.header.status.started) {
-          if (fixtureDetails.header.status.cancelled) {
-            // If match is cancelled show reason
-            let fullResultStack = textStack.addStack();
-            fullResultStack.centerAlignContent();
-            let resultStack = fullResultStack.addStack();
-            let result = resultStack.addText(replaceText(fixtureDetails.header.status.reason.long));
-            result.font = Font.regularSystemFont(12);
-            result.textColor = Color.gray();
-          } else {
-            // If match is in the future show date and time
-            let fullDateStack = textStack.addStack();
-            fullDateStack.centerAlignContent();
-            let dateStack = fullDateStack.addStack();
-            let matchDate = dateStack.addText(formatDate(new Date(fixtureDetails.content.matchFacts.infoBox["Match Date"])));
-            matchDate.font = Font.regularSystemFont(12);
-            matchDate.textColor = Color.gray();
-            dateStack.addSpacer(5);
-            let timeStack = fullDateStack.addStack();
-            let matchTime = timeStack.addText(formatTime(new Date(fixtureDetails.content.matchFacts.infoBox["Match Date"])));
-            matchTime.font = Font.regularSystemFont(12);
-            matchTime.textColor = Color.gray();
-          }
+        const matchInfoDetailsStack = matchInfoStack.addStack();
+        matchInfoDetailsStack.centerAlignContent();
+        if (!matchDetails.header.status.started) {
+            if (matchDetails.header.status.cancelled) {
+                // If match is cancelled show reason
+                const detailsCancellationValue = replaceText(matchDetails.header.status.reason.long);
+                addFormattedText(matchInfoDetailsStack, detailsCancellationValue, Font.regularSystemFont(12), Color.gray(), null, false);
+            } else {
+                // If match is in the future show date and time
+                const detailsDateValue = formatDate(new Date(matchDetails.content.matchFacts.infoBox["Match Date"]));
+                addFormattedText(matchInfoDetailsStack, detailsDateValue, Font.regularSystemFont(12), Color.gray(), null, false);
+                matchInfoDetailsStack.addSpacer(3);
+                const detailsTimeValue = formatTime(new Date(matchDetails.content.matchFacts.infoBox["Match Date"]));
+                addFormattedText(matchInfoDetailsStack, detailsTimeValue, Font.regularSystemFont(12), Color.gray(), null, false);
+            }
         } else {
             // If match is in the past or ongoing show result
-            let fullResultStack = textStack.addStack();
-            fullResultStack.centerAlignContent();
-            let resultStack = fullResultStack.addStack();
-            let result = resultStack.addText(fixtureDetails.header.status.scoreStr);
-            result.font = Font.regularSystemFont(12);
-            result.textColor = Color.gray();
-            resultStack.addSpacer(5);
-            let outcomeStack = fullResultStack.addStack();
-            if (fixtureDetails.header.status.started && !fixtureDetails.header.status.finished) {
-              if (showLivetime) {
-                let liveTime = outcomeStack.addText("(" + replaceText(fixtureDetails.header.status.liveTime.short) + ")");
-                liveTime.font = Font.regularSystemFont(12);
-                liveTime.textColor = Color.gray();
-                outcomeStack.addSpacer(5);
-            }
-                // If match is ongoing add circle symbol
-                let liveText = outcomeStack.addText("●");
-                liveText.font = Font.semiboldSystemFont(11);
-                liveText.textColor = liveColor;
+            const detailsScoreValue = matchDetails.header.status.scoreStr;
+            addFormattedText(matchInfoDetailsStack, detailsScoreValue, Font.regularSystemFont(12), Color.gray(), null, false);
+            matchInfoDetailsStack.addSpacer(3);
+            if (matchDetails.header.status.started && !matchDetails.header.status.finished) {
+                if (userSettings.showLivetime) {
+                    const detailsPlayingTimeValue = `(${replaceText(matchDetails.header.status.liveTime.short)})`;
+                    addFormattedText(matchInfoDetailsStack, detailsPlayingTimeValue, Font.regularSystemFont(12), Color.gray(), null, false);
+                    matchInfoDetailsStack.addSpacer(3);
+                }
+                const detailsLiveValue = "●";
+                addFormattedText(matchInfoDetailsStack, detailsLiveValue, Font.semiboldSystemFont(11), Color.dynamic(new Color(userSettings.liveColor.light), new Color(userSettings.liveColor.dark)), null, false);
             }
         }
     } else {
-        // If there is no match let user know
-        let textStack = eventStack.addStack();
-        textStack.layoutVertically();
-        let noDataStack = textStack.addStack();
-        noDataStack.centerAlignContent();
-        let noData = noDataStack.addText("No matches available");
-        noData.lineLimit = 1;
-        noData.font = Font.regularSystemFont(12);
-        textStack.addSpacer(1);
-        let space1 = textStack.addText("");
-        space1.font = Font.semiboldSystemFont(13);
-        textStack.addSpacer(1);
-        let space2 = textStack.addText("");
-        space2.font = Font.regularSystemFont(12);
+        const matchInfoStack = matchStack.addStack();
+        matchInfoStack.layoutVertically();
+        const matchInfoDetailsStack = matchInfoStack.addStack();
+        matchInfoDetailsStack.centerAlignContent();
+        const noMatchesValue = dictionary.noDataAvailable;
+        addFormattedText(matchInfoDetailsStack, noMatchesValue, Font.regularSystemFont(12), null, 1, false);
+        matchInfoStack.addSpacer(1);
+        addFormattedText(matchInfoStack, "", Font.semiboldSystemFont(13), null, null, false);
+        matchInfoStack.addSpacer(1);
+        addFormattedText(matchInfoStack, "", Font.regularSystemFont(12), null, null, false);
     }
 }
 
 async function addWidgetTable(stack) {
-  const tableFullStack = stack.addStack();
-  tableFullStack.layoutVertically();
-    tableFullStack.url = leagueTableUrl;
-    // Add league title
-    tableFullStack.addSpacer(2.5);
-    const leagueLine = tableFullStack.addStack();
-    leagueLine.addSpacer(4);
-    let leagueTitleText = leagueLine.addText(leagueTitle.toUpperCase());
-    leagueTitleText.textColor = leagueTitleColor;
-    leagueTitleText.font = Font.semiboldSystemFont(11);
-    leagueTitleText.lineLimit = 1;
-    tableFullStack.addSpacer(1);
+    let leagueTable = teamData.tableData.tables[0].table;
+    let leagueTitle = teamData.tableData.tables[0].leagueName;
+    // If league table is not found assume it is a special case with more than one table available
+    if (!leagueTable) {
+        let teamFound;
+        let tableIndex = 0;
+        for (let i = 0; i < teamData.tableData.tables[0].tables.length; i += 1) {
+            teamFound = (teamData.tableData.tables[0].tables[i].table).findIndex(obj => obj.id == teamData.details.id);
+            if (teamFound != -1) {
+                tableIndex = i;
+                break;
+            }
+        }
+        leagueTable = teamData.tableData.tables[0].tables[tableIndex].table;
+        leagueTitle = userSettings.showLeagueSubtitle ? `${leagueTitle} (${teamData.tableData.tables[0].tables[tableIndex].leagueName})` : leagueTitle;
+    }
+    // Get team position in league
+    const teamOnLeague = leagueTable[leagueTable.findIndex(obj => obj.id == teamData.details.id)];
+    let teamLeaguePosition = -1;
+    if (teamOnLeague) {
+        teamLeaguePosition = teamOnLeague.idx;
+    }
 
-    // Add table
+    const leagueStack = stack.addStack();
+    leagueStack.layoutVertically();
+    leagueStack.url = leagueTableTapUrl;
+    leagueStack.addSpacer(2.5);
+    const leagueTitleStack = leagueStack.addStack();
+    leagueTitleStack.addSpacer(4);
+    const leagueTitleValue = leagueTitle.toUpperCase();
+    addFormattedText(leagueTitleStack, leagueTitleValue, Font.semiboldSystemFont(11), Color.dynamic(new Color(userSettings.leagueTitleColor.light), new Color(userSettings.leagueTitleColor.dark)), 1, false);
+    leagueStack.addSpacer(1);
+
     const hSpacing = config.widgetFamily === "small" ? 17 : 19.2;
     const vSpacing = 18.4;
-    const tableStack = tableFullStack.addStack();
-    tableStack.spacing = 2;
+    const leagueTableStack = leagueStack.addStack();
+    leagueTableStack.spacing = 2;
     const tableInfo = getTable(leagueTable, teamLeaguePosition);
     const table = tableInfo[0];
     const highlighted = tableInfo[1];
     for (let i = 0; i < table.length; i += 1) {
-        let rowStack = tableStack.addStack();
-        rowStack.layoutVertically();
+        let leagueTableRowStack = leagueTableStack.addStack();
+        leagueTableRowStack.layoutVertically();
         for (let j = 0; j < table[i].length; j += 1) {
-            let valueStack = rowStack.addStack();
-            valueStack.size = new Size(hSpacing, vSpacing);
-            valueStack.centerAlignContent();
+            let cellDataStack = leagueTableRowStack.addStack();
+            cellDataStack.size = new Size(hSpacing, vSpacing);
+            cellDataStack.centerAlignContent();
             if (i == 0 && j == highlighted) {
-                // Highlight selected team position on first column
-                const highlightedPosition = getHighlightedPosition((teamLeaguePosition).toString(), positionColor);
-                valueStack.addImage(highlightedPosition);
+                const highlightedPositionImage = getPositionHighlight((teamLeaguePosition).toString(), Color.dynamic(new Color(userSettings.highlightedPositionColor.light), new Color(userSettings.highlightedPositionColor.dark)));
+                cellDataStack.addImage(highlightedPositionImage);
             } else if (i == 1 && j > 0) {
-                // Show teams badges on second column
-                let teamImg = await getTeamImg(j, table[i][j]);
-                let teamImage = valueStack.addImage(teamImg);
-                teamImage.imageSize = new Size(14, 14);
+                let teamBadgeUrl = encodeURI(`${baseApiUrl}/images/team/${table[i][j]}_xsmall`);
+                let teamBadgeOffline = `badge_${j}.png`;
+                let teamBadgeValue = await getImage(teamBadgeUrl, teamBadgeOffline);
+                let teamBadgeImage = cellDataStack.addImage(teamBadgeValue);
+                teamBadgeImage.imageSize = new Size(14, 14);
             } else {
-                // Otherwise show table data normally
-                let valueText = valueStack.addText(`${table[i][j]}`);
-                valueText.font = Font.semiboldSystemFont(10);
-                valueText.centerAlignText();
+                let cellDataValue = `${table[i][j]}`;
+                addFormattedText(cellDataStack, cellDataValue, Font.semiboldSystemFont(10), null, null, true);
             }
         }
     }
@@ -397,23 +362,23 @@ function getTable(leagueTable, teamLeaguePosition) {
     let final = teamLeaguePosition + teamsBelow;
     // By default highlight selected team, in the middle row
     let highlighted = teamsToShow - teamsBelow;
-      if (teamLeaguePosition == -1) {
-          // If team selected not found show 5 top teams and do not highlight any
-          initial = 1;
-          final = initial + 4;
-          highlighted = -1;
-          console.log("League Table Error: Team not found in the selected league, showing top teams.");
-        } else if (teamLeaguePosition <= teamsAbove) {
-            // If team selected in first place show 5 top teams and highlight first row
-            initial = 1;
-            final = teamsToShow <= leagueTable.length ? teamsToShow : leagueTable.length;
-            highlighted = teamLeaguePosition;
-          } else if (teamLeaguePosition > leagueTable.length - teamsBelow) {
-              // If team selected in first place show 5 top teams and highlight first row
-              initial = leagueTable.length - teamsToShow >= 0 ? leagueTable.length - teamsToShow + 1 : 1;
-              final = leagueTable.length;
-              highlighted = teamLeaguePosition - initial + 1;
-      }
+    if (teamLeaguePosition == -1) {
+        // If team selected not found show 5 top teams and do not highlight any
+        initial = 1;
+        final = initial + 4;
+        highlighted = -1;
+        console.log("League Table Error: Team not found in the selected league, showing top teams.");
+    } else if (teamLeaguePosition <= teamsAbove) {
+        // If team selected in first place show 5 top teams and highlight first row
+        initial = 1;
+        final = teamsToShow <= leagueTable.length ? teamsToShow : leagueTable.length;
+        highlighted = teamLeaguePosition;
+    } else if (teamLeaguePosition > leagueTable.length - teamsBelow) {
+        // If team selected in first place show 5 top teams and highlight first row
+        initial = leagueTable.length - teamsToShow >= 0 ? leagueTable.length - teamsToShow + 1 : 1;
+        final = leagueTable.length;
+        highlighted = teamLeaguePosition - initial + 1;
+    }
 
     for (let i = initial; i < final + 1; i += 1) {
         // Add table data, row by row
@@ -429,63 +394,82 @@ function getTable(leagueTable, teamLeaguePosition) {
 }
 
 // Return the team badge
-async function getTeamImg(position, id) {
-    // Set image URL, using xsmall images
-    let imageUrl = encodeURI(apiBaseUrl + "/images/team/" + id + "_xsmall");
+async function getImage(url, cachedFileName) {
     let image;
     try {
-        image = await new Request(imageUrl).loadImage();
-        // If image successfully retrieved, write to cache
-        fm.writeImage(fm.joinPath(offlinePath, "badge_" + position + ".png"), image);
+        image = await new Request(url).loadImage();
+        fm.writeImage(fm.joinPath(offlinePath, cachedFileName), image);
     } catch (err) {
-        console.log("Badge Image " + err + " Trying to read cached data.");
+        console.log(`${err} Trying to read cached data: ${cachedFileName}`);
         try {
-            // If image not successfully retrieved, read from cache
-            await fm.downloadFileFromiCloud(fm.joinPath(offlinePath, "badge_" + position + ".png"));
-            image = fm.readImage(fm.joinPath(offlinePath, "badge_" + position + ".png"));
+            if (iCloudUsed) await fm.downloadFileFromiCloud(fm.joinPath(offlinePath, cachedFileName));
+            image = fm.readImage(fm.joinPath(offlinePath, cachedFileName));
         } catch (err) {
-            console.log("Badge Image " + err);
+            console.log(`${err}`);
         }
     }
     return image;
 }
 
-// Draws a circle on the team current position in the league table
-function getHighlightedPosition(position, color) {
-    const drawing = new DrawContext();
-    drawing.respectScreenScale = true;
-    const size = 50;
-    drawing.size = new Size(size, size);
-    drawing.opaque = false;
-    drawing.setFillColor(color);
-    drawing.fillEllipse(new Rect(1, 1, size - 2, size - 2));
-    drawing.setFont(Font.semiboldSystemFont(27));
-    drawing.setTextAlignedCenter();
-    drawing.setTextColor(new Color("#ffffff"));
-    drawing.drawTextInRect(position, new Rect(0, 8.5, size, size));
-    const currentDayImg = drawing.getImage();
-    return currentDayImg;
-}
-
-// Get additional fixture information
-async function getFixtureDetails(title, fixtureId) {
-    let fixtureDetails;
+async function getData(url, cachedFileName) {
+    let data;
     try {
-        fixtureDetails = await new Request(fixtureDetailsUrl + fixtureId).loadJSON();
-        // If data successfully retrieved, write to cache (always using English title for file name, to avoid duplicate cached data for different languages)
-        fm.writeString(fm.joinPath(offlinePath, "fixture" + title + ".json"), JSON.stringify(fixtureDetails));
+        data = await new Request(url).loadJSON();
+        fm.writeString(fm.joinPath(offlinePath, cachedFileName), JSON.stringify(data));
     } catch (err) {
-        console.log(title + " Fixture Details " + err + " Trying to read cached data.");
+        console.log(`${err} Trying to read cached data: ${cachedFileName}`);
         try {
-            // If data not successfully retrieved, read from cache
-            await fm.downloadFileFromiCloud(fm.joinPath(offlinePath, "fixture" + title + ".json"));
-            let raw = fm.readString(fm.joinPath(offlinePath, "fixture" + title + ".json"));
-            fixtureDetails = JSON.parse(raw);
+            if (iCloudUsed) await fm.downloadFileFromiCloud(fm.joinPath(offlinePath, cachedFileName));
+            data = JSON.parse(fm.readString(fm.joinPath(offlinePath, cachedFileName)));
         } catch (err) {
-            console.log(title + " Fixture Details " + err);
+            console.log(`${err}`);
         }
     }
-    return fixtureDetails;
+    return data;
+}
+
+// Draws a circle on the team current position in the league table
+function getPositionHighlight(position, color) {
+    const drawContext = new DrawContext();
+    drawContext.respectScreenScale = true;
+    const size = 50;
+    drawContext.size = new Size(size, size);
+    drawContext.opaque = false;
+    drawContext.setFillColor(color);
+    drawContext.fillEllipse(new Rect(1, 1, size - 2, size - 2));
+    drawContext.setFont(Font.semiboldSystemFont(27));
+    drawContext.setTextAlignedCenter();
+    drawContext.setTextColor(new Color("#ffffff"));
+    drawContext.drawTextInRect(position, new Rect(0, 8.5, size, size));
+    const positionHighlightImage = drawContext.getImage();
+    return positionHighlightImage;
+}
+
+function getResultBar(resultColor) {
+    const drawContext = new DrawContext();
+    drawContext.size = new Size(10, 115);
+    drawContext.respectScreenScale = true;
+    drawContext.opaque = false;
+    drawContext.setStrokeColor(resultColor);
+    drawContext.setLineWidth(10);
+    const path = new Path();
+    path.move(new Point(5, 5));
+    path.addLine(new Point(5, 110));
+    drawContext.addPath(path);
+    drawContext.strokePath();
+    drawContext.setFillColor(resultColor);
+    drawContext.fillEllipse(new Rect(0, 0, 10, 10));
+    drawContext.fillEllipse(new Rect(0, 105, 10, 10));
+    const resultBarImage = drawContext.getImage();
+    return resultBarImage;
+}
+
+function addFormattedText(stack, string, font, textColor, lineLimit, center) {
+    const text = stack.addText(string);
+    text.font = font;
+    if (lineLimit) text.lineLimit = lineLimit;
+    if (textColor) text.textColor = textColor;
+    if (center) text.centerAlignText();
 }
 
 // Formats the event date into day and month (format 01/Jan)
@@ -495,7 +479,7 @@ function formatDate(date) {
     } else if (isTomorrow(date)) {
         return dictionary.matchDateTomorrow;
     } else {
-        let dateFormatter = new DateFormatter();
+        const dateFormatter = new DateFormatter();
         dateFormatter.dateFormat = "dd/MMM";
         // Format will depend on device language
         dateFormatter.locale = (preferredLanguage);
@@ -504,20 +488,19 @@ function formatDate(date) {
 }
 
 function formatTime(date) {
-  var hours = date.getHours();
-  var minutes = date.getMinutes();
-  minutes = minutes < 10 ? '0' + minutes : minutes;
-  var time;
-  if (twelveHourClock) {
-    var ampm = hours >= 12 ? 'pm' : 'am';
-    hours = hours % 12;
-    hours = hours ? hours : 12; // the hour '0' should be '12'
-    time = hours + ':' + minutes + ampm;
-  }
-  else {
-    time = hours + ':' + minutes;
-  }
-  return time;
+    let hours = date.getHours();
+    let minutes = date.getMinutes();
+    minutes = minutes < 10 ? `0${minutes}` : minutes;
+    let time;
+    if (userSettings.twelveHourClock) {
+        const ampm = hours >= 12 ? "pm" : "am";
+        hours = hours % 12;
+        hours = hours ? hours : 12; // the hour '0' should be '12'
+        time = `${hours}:${minutes}${ampm}`;
+    } else {
+        time = `${hours}:${minutes}`;
+    }
+    return time;
 }
 
 // Check if date is today
@@ -538,7 +521,8 @@ function isTomorrow(date) {
 }
 
 // Look for backgroundImage in folder and if available use it as background
-function setWidgetBackground(widget, backgroundImage) {
+function setWidgetBackground(widget) {
+    const backgroundImage = "background.png";
     const imageUrl = fm.joinPath(offlinePath, backgroundImage);
     widget.backgroundImage = Image.fromFile(imageUrl);
 }
@@ -548,28 +532,55 @@ function shortenLeagueRound(leagueRoundName) {
     // Clean extra spaces found on FotMob API responses
     leagueRoundName = leagueRoundName.replace(/ +(?= )/g, '');
     // Split League and Round information
-    let leagueName = leagueRoundName.split(" - ")[0];
+    const leagueName = leagueRoundName.split(" - ")[0];
     let roundName = leagueRoundName.split(" - ")[1];
     if (roundName) {
-      // Clean up round name
-      if (roundName.includes("Round")) {
-          if (roundName.includes("of")) {
-              // Replace "Round of X" with "1/X"
-              roundName = "1/" + roundName.split("Round of ")[1];
-          } else {
-              // Replace "Round X" with "RX" (language dependent)
-              roundName = dictionary.matchRound + roundName.split("Round ")[1];
-          }
-      }
-      return [replaceText(leagueName), " (" + replaceText(roundName) + ")"];
+        // Clean up round name
+        if (roundName.includes("Round")) {
+            if (roundName.includes("of")) {
+                // Replace "Round of X" with "1/X"
+                roundName = `1/${roundName.split("Round of ")[1]}`;
+            } else {
+                // Replace "Round X" with "RX" (language dependent)
+                roundName = `${dictionary.matchRound}${roundName.split("Round ")[1]}`;
+            }
+        }
+        return [replaceText(leagueName), replaceText(roundName)];
     } else {
-      return [replaceText(leagueName), false];
+        return [replaceText(leagueName), false];
     }
+}
+
+// Generate an alert with the provided array of options.
+async function generateAlert(title, options, message) {
+    return await generatePrompt(title, message, options);
+}
+
+// Default prompt for text field values.
+async function promptForText(title, values, keys, message) {
+    return await generatePrompt(title, message, null, values, keys);
+}
+
+// Generic implementation of an alert.
+async function generatePrompt(title, message, options, textvals, placeholders) {
+    const alert = new Alert();
+    alert.title = title;
+    if (message) alert.message = message;
+
+    const buttons = options || ["OK"];
+    for (button of buttons) alert.addAction(button);
+
+    if (!textvals) return await alert.presentAlert();
+
+    for (i = 0; i < textvals.length; i++) alert.addTextField(placeholders && placeholders[i] ? placeholders[i] : null, (textvals[i] || "") + "");
+
+    if (!options) await alert.present();
+    return alert;
 }
 
 // Shorten and / or translate specific information
 function replaceText(string) {
-    let text = {
+    const text = {
         // Tournaments
         "Champions League Qualification": dictionary.championsLeagueQualification,
         "Europa League Qualification": dictionary.europaLeagueQualification,
@@ -593,7 +604,8 @@ function replaceText(string) {
         "Vitoria de Guimaraes": "V. Guimarães",
         "Belenenses SAD": "Belenenses",
         "FC Porto": "Porto"
-    }
+    };
+
     if (text[string]) {
         return text[string];
         // Special cases - includes
@@ -609,8 +621,8 @@ function replaceText(string) {
 }
 
 // Multi language dictionary
-function getDictionary(lang) {
-    let text = {
+function getDictionary(language) {
+    const text = {
         en: {
             championsLeague: "Champions League",
             championsLeagueQualification: "Champions League Q.",
@@ -636,7 +648,9 @@ function getDictionary(lang) {
             tableHeaderWins: "W",
             tableHeaderDraws: "D",
             tableHeaderLosses: "L",
-            tableHeaderPoints: "P"
+            tableHeaderPoints: "P",
+            noDataAvailable: "No data",
+            nointernetConnection: "Internet connection required"
         },
         pt: {
             championsLeague: "Liga Campeões",
@@ -663,7 +677,9 @@ function getDictionary(lang) {
             tableHeaderWins: "V",
             tableHeaderDraws: "E",
             tableHeaderLosses: "D",
-            tableHeaderPoints: "P"
+            tableHeaderPoints: "P",
+            noDataAvailable: "Sem dados",
+            nointernetConnection: "Necessária ligação à internet"
         },
         fr: {
             championsLeague: "Ligue Champions",
@@ -690,7 +706,9 @@ function getDictionary(lang) {
             tableHeaderWins: "G",
             tableHeaderDraws: "N",
             tableHeaderLosses: "P",
-            tableHeaderPoints: "PT"
+            tableHeaderPoints: "PT",
+            noDataAvailable: "Pas de données",
+            nointernetConnection: "Connexion Internet requise"
         },
         de: {
             championsLeague: "Champions League",
@@ -717,8 +735,10 @@ function getDictionary(lang) {
             tableHeaderWins: "G",
             tableHeaderDraws: "U",
             tableHeaderLosses: "V",
-            tableHeaderPoints: "P"
+            tableHeaderPoints: "P",
+            noDataAvailable: "Keine Daten",
+            nointernetConnection: "Internetverbindung erforderlich"
         }
     };
-    return text[lang];
+    return text[language];
 }
