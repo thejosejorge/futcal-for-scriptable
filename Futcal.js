@@ -4,7 +4,7 @@
 
 // Widget customisation
 const defaultSettings = {
-    teamId: 9768,
+    teamId: "9768",
     timeZone: "Europe/London",
 
     language: "system",
@@ -13,8 +13,9 @@ const defaultSettings = {
 
     showRound: false,
     twelveHourClock: false,
-    showLivetime: true,
-    showLeagueSubtitle: true,
+    showDayOfWeek: false,
+    showLivetime: false,
+    showLeagueSubtitle: false,
 
     backgroundColor: {
         light: "#ffffff",
@@ -55,14 +56,14 @@ if (!fm.fileExists(fm.joinPath(offlinePath, userSettingsOffline))) {
 // Get language settings
 const supportedLanguages = ["en", "pt", "fr", "de"];
 let language;
-let preferredLanguage;
+
 if (userSettings.language == "system") {
-    preferredLanguage = Device.preferredLanguages()[0];
-    language = preferredLanguage.split("-")[0];
-    if (!(supportedLanguages.includes(language))) language = "en";
+    let systemLanguage = Device.preferredLanguages()[0];
+    language = systemLanguage.split("-")[0];
 } else {
     language = userSettings.language;
 }
+if (!(supportedLanguages.includes(language))) language = "en";
 const dictionary = getDictionary(language);
 
 // Define FotMob API URLs
@@ -112,7 +113,7 @@ async function createWidget() {
     if (teamData) {
         // By default small widgets will show the Table View, in order to see the Matches View edit the widget and add "matches" in the Parameter box
         if (config.widgetFamily === "small") {
-            if (userSettings.smallWidgetView === "matches") {
+            if (defaultSettings.smallWidgetView === "matches") {
                 widget.url = teamMatchesTapUrl;
                 showTableView = false;
 
@@ -213,7 +214,7 @@ async function addWidgetMatch(matchesStack, match, title) {
         const competitionNameValue = competitionValue[0];
         addFormattedText(matchInfoCompetitionStack, competitionNameValue, Font.semiboldSystemFont(13), null, 1, false);
         if (userSettings.showRound && competitionValue[1]) {
-            matchInfoCompetitionStack.addSpacer(3);
+            matchInfoCompetitionStack.addSpacer(2);
             const competitionRoundValue = `(${competitionValue[1]})`;
             addFormattedText(matchInfoCompetitionStack, competitionRoundValue, Font.semiboldSystemFont(13), null, 1, false);
         }
@@ -224,10 +225,10 @@ async function addWidgetMatch(matchesStack, match, title) {
         matchInfoTeamsStack.centerAlignContent();
         const teamsHomeValue = replaceText(match.home.name);
         addFormattedText(matchInfoTeamsStack, teamsHomeValue, Font.regularSystemFont(12), null, 1, false);
-        matchInfoTeamsStack.addSpacer(3);
+        matchInfoTeamsStack.addSpacer(2);
         const teamsSeparatorValue = "-";
         addFormattedText(matchInfoTeamsStack, teamsSeparatorValue, Font.regularSystemFont(12), null, null, false);
-        matchInfoTeamsStack.addSpacer(3);
+        matchInfoTeamsStack.addSpacer(2);
         const teamsAwayValue = replaceText(match.away.name);
         addFormattedText(matchInfoTeamsStack, teamsAwayValue, Font.regularSystemFont(12), null, 1, false);
         matchInfoStack.addSpacer(1);
@@ -280,6 +281,7 @@ async function addWidgetMatch(matchesStack, match, title) {
 async function addWidgetTable(stack) {
     let leagueTable = teamData.tableData.tables[0].table;
     let leagueTitle = teamData.tableData.tables[0].leagueName;
+    let leagueSubtitle;
     // If league table is not found assume it is a special case with more than one table available
     if (!leagueTable) {
         let teamFound;
@@ -292,7 +294,8 @@ async function addWidgetTable(stack) {
             }
         }
         leagueTable = teamData.tableData.tables[0].tables[tableIndex].table;
-        leagueTitle = userSettings.showLeagueSubtitle ? `${leagueTitle} (${teamData.tableData.tables[0].tables[tableIndex].leagueName})` : leagueTitle;
+        leagueSubtitle = teamData.tableData.tables[0].tables[tableIndex].leagueName;
+        leagueSubtitle = leagueSubtitle.startsWith("- ") ? leagueSubtitle.substring(2) : leagueSubtitle;
     }
     // Get team position in league
     const teamOnLeague = leagueTable[leagueTable.findIndex(obj => obj.id == teamData.details.id)];
@@ -309,6 +312,14 @@ async function addWidgetTable(stack) {
     leagueTitleStack.addSpacer(4);
     const leagueTitleValue = leagueTitle.toUpperCase();
     addFormattedText(leagueTitleStack, leagueTitleValue, Font.semiboldSystemFont(11), Color.dynamic(new Color(userSettings.leagueTitleColor.light), new Color(userSettings.leagueTitleColor.dark)), 1, false);
+    if (userSettings.showLeagueSubtitle && leagueSubtitle) {
+      leagueTitleStack.addSpacer(2);
+      const leagueSeparatorValue = "-";
+      addFormattedText(leagueTitleStack, leagueSeparatorValue, Font.semiboldSystemFont(11), Color.dynamic(new Color(userSettings.leagueTitleColor.light), new Color(userSettings.leagueTitleColor.dark)), 1, false);
+      leagueTitleStack.addSpacer(2);
+      const leagueSubtitleValue = leagueSubtitle.toUpperCase();
+      addFormattedText(leagueTitleStack, leagueSubtitleValue, Font.semiboldSystemFont(11), Color.dynamic(new Color(userSettings.leagueTitleColor.light), new Color(userSettings.leagueTitleColor.dark)), 1, false);
+    }
     leagueStack.addSpacer(1);
 
     const hSpacing = config.widgetFamily === "small" ? 17 : 19.2;
@@ -480,9 +491,9 @@ function formatDate(date) {
         return dictionary.matchDateTomorrow;
     } else {
         const dateFormatter = new DateFormatter();
-        dateFormatter.dateFormat = "dd/MMM";
+        dateFormatter.dateFormat = userSettings.showDayOfWeek ? "EEE dd/MMM" : "dd/MMM";
         // Format will depend on device language
-        dateFormatter.locale = (preferredLanguage);
+        dateFormatter.locale = (language);
         return dateFormatter.string(date);
     }
 }
@@ -549,33 +560,6 @@ function shortenLeagueRound(leagueRoundName) {
     } else {
         return [replaceText(leagueName), false];
     }
-}
-
-// Generate an alert with the provided array of options.
-async function generateAlert(title, options, message) {
-    return await generatePrompt(title, message, options);
-}
-
-// Default prompt for text field values.
-async function promptForText(title, values, keys, message) {
-    return await generatePrompt(title, message, null, values, keys);
-}
-
-// Generic implementation of an alert.
-async function generatePrompt(title, message, options, textvals, placeholders) {
-    const alert = new Alert();
-    alert.title = title;
-    if (message) alert.message = message;
-
-    const buttons = options || ["OK"];
-    for (button of buttons) alert.addAction(button);
-
-    if (!textvals) return await alert.presentAlert();
-
-    for (i = 0; i < textvals.length; i++) alert.addTextField(placeholders && placeholders[i] ? placeholders[i] : null, (textvals[i] || "") + "");
-
-    if (!options) await alert.present();
-    return alert;
 }
 
 // Shorten and / or translate specific information
