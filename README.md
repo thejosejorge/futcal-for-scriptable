@@ -160,6 +160,19 @@ Please see the examples below to see the difference:
 | `19/Jan 19:45`               | `19/Jan 7:45pm`              |
 | `03/Feb 16:00`               | `03/Feb 4:00pm`              |
 
+#### 📅 Day of the Week
+By default the day of the week is not shown on the next match date.
+
+In order to turn this feature on:
+1. Look for parameter `showDayOfWeek` in `Futcal.js`.
+2. Change the value to `true`.
+
+Please see the examples below to see the difference:
+| `showDayOfWeek = false`      | `showDayOfWeek = true`       |
+| ---------------------------- | ---------------------------- |
+| `19/Jan 19:45`               | `Tue 19/Jan 19:45`           |
+| `03/Feb 16:00`               | `Wed 03/Feb 16:00`           |
+
 #### ⏱️ Playing Time
 By default the current playing time is not shown on live matches.
 
