@@ -147,6 +147,19 @@ Please see the examples below to see the difference:
 | `MLS`                        | `MLS (EASTERN)`              |
 | `EURO U21`                   | `EURO U21 (GRP. D)`          |
 
+#### ♟️ Opposition
+By default in the matches details both teams are shown. There is the option to shown only the opposition team and whether it is a home or away match.
+
+In order to turn this option on:
+1. Look for parameter `showOnlyOpposition` in `Futcal.js`.
+2. Change the value to `true`.
+
+Please see the examples below to see the difference:
+| `showOnlyOpposition = false` | `showOnlyOpposition = true`  |
+| ---------------------------- | ---------------------------- |
+| `Boavista - Sporting`        | `Boavista (A)`               |
+| `Sporting - Benfica`         | `Benfica (H)`                |
+
 #### 🕒 12 / 24 Hour Clock
 By default the next match time is shown using the 24 hour clock.
 
