@@ -12,6 +12,7 @@ const defaultSettings = {
     smallWidgetView: args.widgetParameter ? args.widgetParameter : "table",
 
     showRound: false,
+    showOnlyOpposition: false,
     twelveHourClock: false,
     showDayOfWeek: false,
     showLivetime: false,
@@ -223,14 +224,21 @@ async function addWidgetMatch(matchesStack, match, title) {
         // Add match info
         const matchInfoTeamsStack = matchInfoStack.addStack();
         matchInfoTeamsStack.centerAlignContent();
-        const teamsHomeValue = replaceText(match.home.name);
-        addFormattedText(matchInfoTeamsStack, teamsHomeValue, Font.regularSystemFont(12), null, 1, false);
-        matchInfoTeamsStack.addSpacer(2);
-        const teamsSeparatorValue = "-";
-        addFormattedText(matchInfoTeamsStack, teamsSeparatorValue, Font.regularSystemFont(12), null, null, false);
-        matchInfoTeamsStack.addSpacer(2);
-        const teamsAwayValue = replaceText(match.away.name);
-        addFormattedText(matchInfoTeamsStack, teamsAwayValue, Font.regularSystemFont(12), null, 1, false);
+        if (userSettings.showOnlyOpposition) {
+          const teamsHomeValue = replaceText(match.home.name);
+          addFormattedText(matchInfoTeamsStack, teamsHomeValue, Font.regularSystemFont(12), null, 1, false);
+          matchInfoTeamsStack.addSpacer(2);
+          const teamsSeparatorValue = "(H)";
+        } else {
+          const teamsHomeValue = replaceText(match.home.name);
+          addFormattedText(matchInfoTeamsStack, teamsHomeValue, Font.regularSystemFont(12), null, 1, false);
+          matchInfoTeamsStack.addSpacer(2);
+          const teamsSeparatorValue = "-";
+          addFormattedText(matchInfoTeamsStack, teamsSeparatorValue, Font.regularSystemFont(12), null, null, false);
+          matchInfoTeamsStack.addSpacer(2);
+          const teamsAwayValue = replaceText(match.away.name);
+          addFormattedText(matchInfoTeamsStack, teamsAwayValue, Font.regularSystemFont(12), null, 1, false);
+        }
         matchInfoStack.addSpacer(1);
 
         // Add date/time or result
