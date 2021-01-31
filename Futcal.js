@@ -225,10 +225,11 @@ async function addWidgetMatch(matchesStack, match, title) {
         const matchInfoTeamsStack = matchInfoStack.addStack();
         matchInfoTeamsStack.centerAlignContent();
         if (userSettings.showOnlyOpposition) {
-          const teamsHomeValue = replaceText(match.home.name);
-          addFormattedText(matchInfoTeamsStack, teamsHomeValue, Font.regularSystemFont(12), null, 1, false);
+          const oppositionTeamValue = match.home.id == teamData.details.id ? replaceText(match.away.name) : replaceText(match.home.name);
+          addFormattedText(matchInfoTeamsStack, oppositionTeamValue, Font.regularSystemFont(12), null, 1, false);
           matchInfoTeamsStack.addSpacer(2);
-          const teamsSeparatorValue = "(H)";
+          const homeOrAwayValue = match.home.id == teamData.details.id ? `(${dictionary.home})` : `(${dictionary.away})`;
+          addFormattedText(matchInfoTeamsStack, homeOrAwayValue, Font.regularSystemFont(12), null, null, false);
         } else {
           const teamsHomeValue = replaceText(match.home.name);
           addFormattedText(matchInfoTeamsStack, teamsHomeValue, Font.regularSystemFont(12), null, 1, false);
@@ -630,6 +631,8 @@ function getDictionary(language) {
             final: "F",
             matchTitleNext: "Next",
             matchRound: "R",
+            home: "H",
+            away: "A",
             matchDateToday: "Today",
             matchDateTomorrow: "Tomorrow",
             postponed: "Postponed",
@@ -659,6 +662,8 @@ function getDictionary(language) {
             final: "F",
             matchTitleNext: "Próximo",
             matchRound: "J",
+            home: "C",
+            away: "F",
             matchDateToday: "Hoje",
             matchDateTomorrow: "Amanhã",
             postponed: "Adiado",
@@ -688,6 +693,8 @@ function getDictionary(language) {
             final: "F",
             matchTitleNext: "Suivant",
             matchRound: "J",
+            home: "D",
+            away: "E",
             matchDateToday: "Aujourd'hui",
             matchDateTomorrow: "Demain",
             postponed: "Reporté",
@@ -717,6 +724,8 @@ function getDictionary(language) {
             final: "F",
             matchTitleNext: "Nächstes",
             matchRound: "S",
+            home: "H",
+            away: "A",
             matchDateToday: "Heute",
             matchDateTomorrow: "Morgen",
             postponed: "Verlegt",
