@@ -55,8 +55,8 @@ if (!fm.fileExists(fm.joinPath(offlinePath, userSettingsOffline))) {
 }
 
 // Get language settings
-const supportedLanguages = ["en", "pt", "fr", "de"];
 let language;
+const supportedLanguages = getDictionary(language)[0];
 
 if (userSettings.language == "system") {
     let systemLanguage = Device.preferredLanguages()[0];
@@ -64,8 +64,11 @@ if (userSettings.language == "system") {
 } else {
     language = userSettings.language;
 }
-if (!(supportedLanguages.includes(language))) language = "en";
-const dictionary = getDictionary(language);
+if (!(supportedLanguages.includes(language))) {
+  console.log("Language Error: Language not found, defaulting to English.")
+  language = "en";
+};
+const dictionary = getDictionary(language)[1];
 
 // Define FotMob API URLs
 const baseApiUrl = encodeURI("https://www.fotmob.com");
@@ -739,7 +742,38 @@ function getDictionary(language) {
             tableHeaderPoints: "P",
             noDataAvailable: "Keine Daten",
             nointernetConnection: "Internetverbindung erforderlich"
+        },
+        cs: {
+            championsLeague: "Liga mistrů",
+            championsLeagueQualification: "Liga mistrů K.",
+            europaLeague: "Evropská liga",
+            europaLeagueQualification: "Evropská liga K.",
+            uefaSuperCup: "Superpohár UEFA",
+            cup: "Pohár",
+            leagueCup: "Ligový pohár",
+            superCup: "Super pohár",
+            clubFriendlies: "Prátelák",
+            quarterFinal: "ČF",
+            semiFinal: "SF",
+            final: "F",
+            matchTitleNext: "Další",
+            matchRound: "K",
+            home: "D",
+            away: "V",
+            matchDateToday: "Dnes",
+            matchDateTomorrow: "Zítra",
+            postponed: "Přeloženo",
+            cancelled: "Zrušeno",
+            halfTime: "Pol",
+            tableHeaderTeam: "T",
+            tableHeaderPlayed: "Z",
+            tableHeaderWins: "V",
+            tableHeaderDraws: "R",
+            tableHeaderLosses: "P",
+            tableHeaderPoints: "B",
+            noDataAvailable: "Žádná data",
+            nointernetConnection: "Vyžadováno internetové připojení"
         }
     };
-    return text[language];
+    return [Object.keys(text), text[language]];
 }
