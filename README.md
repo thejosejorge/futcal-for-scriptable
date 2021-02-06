@@ -240,12 +240,13 @@ iCloud Drive/
 
 #### 🎨 Colors
 To customise the widget colors look for the following parameters in the script:
-| Parameter          | Notes                                             |
-| ------------------ | ------------------------------------------------- |
-| `backgroundColor`  | Dynamic, changes with dark mode (light, dark)     |
-| `leagueTitleColor` | Color of the league table title                   |
-| `positionColor`    | Color of the circle highlighting team's position  |
-| `liveColor`        | Color of the circle shown when a match is ongoing |
+| Parameter                  | Notes                                             |
+| -------------------------- | ------------------------------------------------- |
+| `backgroundColor`          | Dynamic, changes with dark mode (light, dark)     |
+| `leagueTitleColor`         | Color of the league table title                   |
+| `highlightedPositionColor` | Color of the circle highlighting team's position  |
+| `highlightedRowColor`      | Color of the row highlighting team's position     |
+| `liveColor`                | Color of the circle shown when a match is ongoing |
 
 #### 📖 Data Manipulation
 To customise specific strings returned by the API change the `text` variable inside the function `replaceText`.\
