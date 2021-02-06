@@ -135,18 +135,16 @@ Please see the examples below to see the difference:
 | `Premier League`             | `Premier League (R1)`        |
 | `Cup`                        | `Cup (Q/F)`                  |
 
-#### 🏆 League Subtitle
-For leagues with more than one table (e.g. "MLS" with "Eastern" and "Western") it is possible to show the subtitle next to the league title. By default this is turned off to minimise the amount of information shown.
+#### 🆚 Teams Names / Logos
+By default in the matches details only the teams names are shown. It's also possible to show the teams logos. Both options can be turned on or off.
 
-In order to turn this feature on:
-1. Look for parameter `showLeagueSubtitle` in `Futcal.js`.
-2. Change the value to `true`.
+Teams Names option:
+1. Look for parameter `showMatchesTeamsNames` in `Futcal.js`.
+2. Change the value to `true` / `false` to turn it on / off.
 
-Please see the examples below to see the difference:
-| `showLeagueSubtitle = false` | `showLeagueSubtitle = true`  |
-| ---------------------------- | ---------------------------- |
-| `MLS`                        | `MLS (EASTERN)`              |
-| `EURO U21`                   | `EURO U21 (GRP. D)`          |
+Teams Logos option:
+1. Look for parameter `showMatchesTeamsBadges` in `Futcal.js`.
+2. Change the value to `true` / `false` to turn it on / off.
 
 #### ♟️ Opposition
 By default in the matches details both teams are shown. There is the option to shown only the opposition team and whether it is a home or away match.
@@ -199,6 +197,30 @@ Please see the examples below to see the difference:
 | ---------------------------- | ---------------------------- |
 | `1 - 0 ●`                    | `1 - 0 (15') ●`              |
 | `2 - 2 ●`                    | `2 - 2 (HT) ●`               |
+
+#### 🏆 League Subtitle
+For leagues with more than one table (e.g. "MLS" with "Eastern" and "Western") it is possible to show the subtitle next to the league title. By default this is turned off to minimise the amount of information shown.
+
+In order to turn this feature on:
+1. Look for parameter `showLeagueSubtitle` in `Futcal.js`.
+2. Change the value to `true`.
+
+Please see the examples below to see the difference:
+| `showLeagueSubtitle = false` | `showLeagueSubtitle = true`  |
+| ---------------------------- | ---------------------------- |
+| `MLS`                        | `MLS (EASTERN)`              |
+| `EURO U21`                   | `EURO U21 (GRP. D)`          |
+
+#### 🥇 Position Highlight
+By default the current team position in the league table is highlighted with a circle around the position cell. It's also possible to highlight the entire row on the table. Both options can be turned on or off.
+
+Circle highlight option:
+1. Look for parameter `showCirclePositionHighlight` in `Futcal.js`.
+2. Change the value to `true` / `false` to turn it on / off.
+
+Row highlight option:
+1. Look for parameter `showRowPositionHighlight` in `Futcal.js`.
+2. Change the value to `true` / `false` to turn it on / off.
 
 #### 🖼️ Background
 By default the widget has a solid color background (same as the Apple Calendar widget).
