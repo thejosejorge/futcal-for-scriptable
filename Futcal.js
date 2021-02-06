@@ -11,12 +11,17 @@ const defaultSettings = {
 
     smallWidgetView: args.widgetParameter ? args.widgetParameter : "table",
 
-    showRound: false,
-    showOnlyOpposition: false,
-    twelveHourClock: false,
-    showDayOfWeek: false,
-    showLivetime: false,
+    showMatchesRound: false,
+    showMatchesTeamsNames: true,
+    showMatchesTeamsBadges: false,
+    showMatchesOnlyOpposition: false,
+    showHomeOrAway : false,
+    matchesTwelveHourClock: false,
+    showMatchesDayOfWeek: false,
+    showMatchesLiveTime: false,
     showLeagueSubtitle: false,
+    showCirclePositionHighlight: true,
+    showRowPositionHighlight: false,
 
     backgroundColor: {
         light: "#ffffff",
@@ -29,6 +34,10 @@ const defaultSettings = {
     highlightedPositionColor: {
         light: "#ff3b30",
         dark: "#ff453a"
+    },
+    highlightedRowColor: {
+        light: "#e5e6ea",
+        dark: "#3a3a3c"
     },
     liveColor: {
         light: "#ff3b30",
@@ -217,7 +226,7 @@ async function addWidgetMatch(matchesStack, match, title) {
         const competitionValue = shortenLeagueRound(matchDetails.content.matchFacts.infoBox.Tournament.text);
         const competitionNameValue = competitionValue[0];
         addFormattedText(matchInfoCompetitionStack, competitionNameValue, Font.semiboldSystemFont(13), null, 1, false);
-        if (userSettings.showRound && competitionValue[1]) {
+        if (userSettings.showMatchesRound && competitionValue[1]) {
             matchInfoCompetitionStack.addSpacer(2);
             const competitionRoundValue = `(${competitionValue[1]})`;
             addFormattedText(matchInfoCompetitionStack, competitionRoundValue, Font.semiboldSystemFont(13), null, 1, false);
@@ -227,21 +236,53 @@ async function addWidgetMatch(matchesStack, match, title) {
         // Add match info
         const matchInfoTeamsStack = matchInfoStack.addStack();
         matchInfoTeamsStack.centerAlignContent();
-        if (userSettings.showOnlyOpposition) {
-          const oppositionTeamValue = match.home.id == teamData.details.id ? replaceText(match.away.name) : replaceText(match.home.name);
-          addFormattedText(matchInfoTeamsStack, oppositionTeamValue, Font.regularSystemFont(12), null, 1, false);
-          matchInfoTeamsStack.addSpacer(2);
-          const homeOrAwayValue = match.home.id == teamData.details.id ? `(${dictionary.home})` : `(${dictionary.away})`;
-          addFormattedText(matchInfoTeamsStack, homeOrAwayValue, Font.regularSystemFont(12), null, null, false);
+        if (userSettings.showMatchesOnlyOpposition) {
+          if (userSettings.showMatchesTeamsBadges) {
+            let teamBadgeUrl = match.home.id == teamData.details.id ? encodeURI(`${baseApiUrl}/images/team/${match.away.id}_xsmall`) : encodeURI(`${baseApiUrl}/images/team/${match.home.id}_xsmall`);
+            let teamBadgeOffline = match.home.id == teamData.details.id ? `badge${title}Away.png` : `badge${title}Home.png`;
+            let teamBadgeValue = await getImage(teamBadgeUrl, teamBadgeOffline);
+            let teamBadgeImage = matchInfoTeamsStack.addImage(teamBadgeValue);
+            teamBadgeImage.imageSize = new Size(14, 14);
+            matchInfoTeamsStack.addSpacer(2);
+          }
+          if (userSettings.showMatchesTeamsNames) {
+            const oppositionTeamValue = match.home.id == teamData.details.id ? replaceText(match.away.name) : replaceText(match.home.name);
+            addFormattedText(matchInfoTeamsStack, oppositionTeamValue, Font.regularSystemFont(12), null, 1, false);
+            matchInfoTeamsStack.addSpacer(2);
+          }
+          if (userSettings.showHomeOrAway) {
+            const homeOrAwayValue = match.home.id == teamData.details.id ? `(${dictionary.home})` : `(${dictionary.away})`;
+            addFormattedText(matchInfoTeamsStack, homeOrAwayValue, Font.regularSystemFont(12), null, null, false);
+          }
         } else {
-          const teamsHomeValue = replaceText(match.home.name);
-          addFormattedText(matchInfoTeamsStack, teamsHomeValue, Font.regularSystemFont(12), null, 1, false);
-          matchInfoTeamsStack.addSpacer(2);
+          if (userSettings.showMatchesTeamsNames) {
+            const teamsHomeValue = replaceText(match.home.name);
+            addFormattedText(matchInfoTeamsStack, teamsHomeValue, Font.regularSystemFont(12), null, 1, false);
+            matchInfoTeamsStack.addSpacer(2);
+          }
+          if (userSettings.showMatchesTeamsBadges) {
+            let teamBadgeUrl = encodeURI(`${baseApiUrl}/images/team/${match.home.id}_xsmall`);
+            let teamBadgeOffline = `badge${title}Home.png`;
+            let teamBadgeValue = await getImage(teamBadgeUrl, teamBadgeOffline);
+            let teamBadgeImage = matchInfoTeamsStack.addImage(teamBadgeValue);
+            teamBadgeImage.imageSize = new Size(14, 14);
+            matchInfoTeamsStack.addSpacer(2);
+          }
           const teamsSeparatorValue = "-";
           addFormattedText(matchInfoTeamsStack, teamsSeparatorValue, Font.regularSystemFont(12), null, null, false);
-          matchInfoTeamsStack.addSpacer(2);
-          const teamsAwayValue = replaceText(match.away.name);
-          addFormattedText(matchInfoTeamsStack, teamsAwayValue, Font.regularSystemFont(12), null, 1, false);
+          if (userSettings.showMatchesTeamsBadges) {
+            matchInfoTeamsStack.addSpacer(2);
+            let teamBadgeUrl = encodeURI(`${baseApiUrl}/images/team/${match.away.id}_xsmall`);
+            let teamBadgeOffline = `badge${title}Away.png`;
+            let teamBadgeValue = await getImage(teamBadgeUrl, teamBadgeOffline);
+            let teamBadgeImage = matchInfoTeamsStack.addImage(teamBadgeValue);
+            teamBadgeImage.imageSize = new Size(14, 14);
+          }
+          if (userSettings.showMatchesTeamsNames) {
+            matchInfoTeamsStack.addSpacer(2);
+            const teamsAwayValue = replaceText(match.away.name);
+            addFormattedText(matchInfoTeamsStack, teamsAwayValue, Font.regularSystemFont(12), null, 1, false);
+          }
         }
         matchInfoStack.addSpacer(1);
 
@@ -267,7 +308,7 @@ async function addWidgetMatch(matchesStack, match, title) {
             addFormattedText(matchInfoDetailsStack, detailsScoreValue, Font.regularSystemFont(12), Color.gray(), null, false);
             matchInfoDetailsStack.addSpacer(3);
             if (matchDetails.header.status.started && !matchDetails.header.status.finished) {
-                if (userSettings.showLivetime) {
+                if (userSettings.showMatchesLiveTime) {
                     const detailsPlayingTimeValue = `(${replaceText(matchDetails.header.status.liveTime.short)})`;
                     addFormattedText(matchInfoDetailsStack, detailsPlayingTimeValue, Font.regularSystemFont(12), Color.gray(), null, false);
                     matchInfoDetailsStack.addSpacer(3);
@@ -337,23 +378,29 @@ async function addWidgetTable(stack) {
     const hSpacing = config.widgetFamily === "small" ? 17 : 19.2;
     const vSpacing = 18.4;
     const leagueTableStack = leagueStack.addStack();
-    leagueTableStack.spacing = 2;
+    leagueTableStack.layoutVertically();
     const tableInfo = getTable(leagueTable, teamLeaguePosition);
     const table = tableInfo[0];
     const highlighted = tableInfo[1];
     for (let i = 0; i < table.length; i += 1) {
         let leagueTableRowStack = leagueTableStack.addStack();
-        leagueTableRowStack.layoutVertically();
+        leagueTableRowStack.spacing = 2;
         for (let j = 0; j < table[i].length; j += 1) {
             let cellDataStack = leagueTableRowStack.addStack();
             cellDataStack.size = new Size(hSpacing, vSpacing);
             cellDataStack.centerAlignContent();
-            if (i == 0 && j == highlighted) {
-                const highlightedPositionImage = getPositionHighlight((teamLeaguePosition).toString(), Color.dynamic(new Color(userSettings.highlightedPositionColor.light), new Color(userSettings.highlightedPositionColor.dark)));
-                cellDataStack.addImage(highlightedPositionImage);
-            } else if (i == 1 && j > 0) {
+            if (j == 0 && i == highlighted) {
+                if (userSettings.showRowPositionHighlight) leagueTableRowStack.backgroundColor = Color.dynamic(new Color(userSettings.highlightedRowColor.light), new Color(userSettings.highlightedRowColor.dark));
+                if (userSettings.showCirclePositionHighlight) {
+                  const highlightedPositionImage = getPositionHighlight((teamLeaguePosition).toString(), Color.dynamic(new Color(userSettings.highlightedPositionColor.light), new Color(userSettings.highlightedPositionColor.dark)));
+                  cellDataStack.addImage(highlightedPositionImage);
+                } else {
+                  let cellDataValue = `${table[i][j]}`;
+                  addFormattedText(cellDataStack, cellDataValue, Font.semiboldSystemFont(10), null, null, true);
+                }
+            } else if (j == 1 && i > 0) {
                 let teamBadgeUrl = encodeURI(`${baseApiUrl}/images/team/${table[i][j]}_xsmall`);
-                let teamBadgeOffline = `badge_${j}.png`;
+                let teamBadgeOffline = `badge_${i}.png`;
                 let teamBadgeValue = await getImage(teamBadgeUrl, teamBadgeOffline);
                 let teamBadgeImage = cellDataStack.addImage(teamBadgeValue);
                 teamBadgeImage.imageSize = new Size(14, 14);
@@ -369,13 +416,15 @@ async function addWidgetTable(stack) {
 function getTable(leagueTable, teamLeaguePosition) {
     const table = [
         // Table header
-        ["#"],
-        [dictionary.tableHeaderTeam],
-        [dictionary.tableHeaderPlayed],
-        [dictionary.tableHeaderWins],
-        [dictionary.tableHeaderDraws],
-        [dictionary.tableHeaderLosses],
-        [dictionary.tableHeaderPoints]
+        [
+          "#",
+          dictionary.tableHeaderTeam,
+          dictionary.tableHeaderPlayed,
+          dictionary.tableHeaderWins,
+          dictionary.tableHeaderDraws,
+          dictionary.tableHeaderLosses,
+          dictionary.tableHeaderPoints
+        ],
     ];
     const teamsToShow = Math.min(5, leagueTable.length);
     const teamsAbove = Math.ceil((teamsToShow - 1) / 2);
@@ -405,13 +454,17 @@ function getTable(leagueTable, teamLeaguePosition) {
 
     for (let i = initial; i < final + 1; i += 1) {
         // Add table data, row by row
-        table[0].push(i);
-        table[1].push(leagueTable[i - 1].id);
-        table[2].push(leagueTable[i - 1].played);
-        table[3].push(leagueTable[i - 1].wins);
-        table[4].push(leagueTable[i - 1].draws);
-        table[5].push(leagueTable[i - 1].losses);
-        table[6].push(leagueTable[i - 1].pts);
+        table.push(
+          [
+            i,
+            leagueTable[i - 1].id,
+            leagueTable[i - 1].played,
+            leagueTable[i - 1].wins,
+            leagueTable[i - 1].draws,
+            leagueTable[i - 1].losses,
+            leagueTable[i - 1].pts
+          ]
+        );
     }
     return [table, highlighted];
 }
@@ -503,7 +556,7 @@ function formatDate(date) {
         return dictionary.matchDateTomorrow;
     } else {
         const dateFormatter = new DateFormatter();
-        dateFormatter.dateFormat = userSettings.showDayOfWeek ? "EEE dd/MMM" : "dd/MMM";
+        dateFormatter.dateFormat = userSettings.showMatchesDayOfWeek ? "EEE dd/MMM" : "dd/MMM";
         // Format will depend on device language
         dateFormatter.locale = (language);
         return dateFormatter.string(date);
@@ -515,7 +568,7 @@ function formatTime(date) {
     let minutes = date.getMinutes();
     minutes = minutes < 10 ? `0${minutes}` : minutes;
     let time;
-    if (userSettings.twelveHourClock) {
+    if (userSettings.matchesTwelveHourClock) {
         const ampm = hours >= 12 ? "pm" : "am";
         hours = hours % 12;
         hours = hours ? hours : 12; // the hour '0' should be '12'
