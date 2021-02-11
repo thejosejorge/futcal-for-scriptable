@@ -47,6 +47,7 @@ Futcal is prepared to support multiple languages, based on your device system se
 Currently the following languages are available:
 * 🇬🇧 English
 * 🇵🇹 Portuguese
+* 🇪🇸 Spanish
 * 🇫🇷 French (thanks to [@Write](https://github.com/Write) for the help translating)
 * 🇩🇪 German (thanks to [@lcshmn](https://github.com/lcshmn) and [@ostoer](https://github.com/ostoer) for the help translating)
 * 🇨🇿 Czech
