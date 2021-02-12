@@ -15,7 +15,7 @@ const defaultSettings = {
     showMatchesTeamsNames: true,
     showMatchesTeamsBadges: false,
     showMatchesOnlyOpposition: false,
-    showHomeOrAway : false,
+    showHomeOrAway: false,
     matchesTwelveHourClock: false,
     showMatchesDayOfWeek: false,
     showMatchesLiveTime: false,
@@ -74,8 +74,8 @@ if (userSettings.language == "system") {
     language = userSettings.language;
 }
 if (!(supportedLanguages.includes(language))) {
-  console.log("Language Error: Language not found, defaulting to English.")
-  language = "en";
+    console.log("Language Error: Language not found, defaulting to English.")
+    language = "en";
 };
 const dictionary = getDictionary(language)[1];
 
@@ -153,7 +153,7 @@ async function createWidget() {
             await addWidgetTable(globalStack);
         }
     } else {
-        const offlineError = dictionary.nointernetConnection;
+        const offlineError = dictionary.noInternetConnection;
         const errorStack = widget.addStack();
         addFormattedText(errorStack, offlineError, Font.regularSystemFont(14), Color.gray(), null, true);
     }
@@ -237,52 +237,52 @@ async function addWidgetMatch(matchesStack, match, title) {
         const matchInfoTeamsStack = matchInfoStack.addStack();
         matchInfoTeamsStack.centerAlignContent();
         if (userSettings.showMatchesOnlyOpposition) {
-          if (userSettings.showMatchesTeamsBadges) {
-            let teamBadgeUrl = match.home.id == teamData.details.id ? encodeURI(`${baseApiUrl}/images/team/${match.away.id}_xsmall`) : encodeURI(`${baseApiUrl}/images/team/${match.home.id}_xsmall`);
-            let teamBadgeOffline = match.home.id == teamData.details.id ? `badge${title}Away.png` : `badge${title}Home.png`;
-            let teamBadgeValue = await getImage(teamBadgeUrl, teamBadgeOffline);
-            let teamBadgeImage = matchInfoTeamsStack.addImage(teamBadgeValue);
-            teamBadgeImage.imageSize = new Size(14, 14);
-            matchInfoTeamsStack.addSpacer(2);
-          }
-          if (userSettings.showMatchesTeamsNames) {
-            const oppositionTeamValue = match.home.id == teamData.details.id ? replaceText(match.away.name) : replaceText(match.home.name);
-            addFormattedText(matchInfoTeamsStack, oppositionTeamValue, Font.regularSystemFont(12), null, 1, false);
-            matchInfoTeamsStack.addSpacer(2);
-          }
-          if (userSettings.showHomeOrAway) {
-            const homeOrAwayValue = match.home.id == teamData.details.id ? `(${dictionary.home})` : `(${dictionary.away})`;
-            addFormattedText(matchInfoTeamsStack, homeOrAwayValue, Font.regularSystemFont(12), null, null, false);
-          }
+            if (userSettings.showMatchesTeamsBadges) {
+                let teamBadgeUrl = match.home.id == teamData.details.id ? encodeURI(`${baseApiUrl}/images/team/${match.away.id}_xsmall`) : encodeURI(`${baseApiUrl}/images/team/${match.home.id}_xsmall`);
+                let teamBadgeOffline = match.home.id == teamData.details.id ? `badge${title}Away.png` : `badge${title}Home.png`;
+                let teamBadgeValue = await getImage(teamBadgeUrl, teamBadgeOffline);
+                let teamBadgeImage = matchInfoTeamsStack.addImage(teamBadgeValue);
+                teamBadgeImage.imageSize = new Size(14, 14);
+                matchInfoTeamsStack.addSpacer(2);
+            }
+            if (userSettings.showMatchesTeamsNames) {
+                const oppositionTeamValue = match.home.id == teamData.details.id ? replaceText(match.away.name) : replaceText(match.home.name);
+                addFormattedText(matchInfoTeamsStack, oppositionTeamValue, Font.regularSystemFont(12), null, 1, false);
+                matchInfoTeamsStack.addSpacer(2);
+            }
+            if (userSettings.showHomeOrAway) {
+                const homeOrAwayValue = match.home.id == teamData.details.id ? `(${dictionary.home})` : `(${dictionary.away})`;
+                addFormattedText(matchInfoTeamsStack, homeOrAwayValue, Font.regularSystemFont(12), null, null, false);
+            }
         } else {
-          if (userSettings.showMatchesTeamsNames) {
-            const teamsHomeValue = replaceText(match.home.name);
-            addFormattedText(matchInfoTeamsStack, teamsHomeValue, Font.regularSystemFont(12), null, 1, false);
-            matchInfoTeamsStack.addSpacer(2);
-          }
-          if (userSettings.showMatchesTeamsBadges) {
-            let teamBadgeUrl = encodeURI(`${baseApiUrl}/images/team/${match.home.id}_xsmall`);
-            let teamBadgeOffline = `badge${title}Home.png`;
-            let teamBadgeValue = await getImage(teamBadgeUrl, teamBadgeOffline);
-            let teamBadgeImage = matchInfoTeamsStack.addImage(teamBadgeValue);
-            teamBadgeImage.imageSize = new Size(14, 14);
-            matchInfoTeamsStack.addSpacer(2);
-          }
-          const teamsSeparatorValue = "-";
-          addFormattedText(matchInfoTeamsStack, teamsSeparatorValue, Font.regularSystemFont(12), null, null, false);
-          if (userSettings.showMatchesTeamsBadges) {
-            matchInfoTeamsStack.addSpacer(2);
-            let teamBadgeUrl = encodeURI(`${baseApiUrl}/images/team/${match.away.id}_xsmall`);
-            let teamBadgeOffline = `badge${title}Away.png`;
-            let teamBadgeValue = await getImage(teamBadgeUrl, teamBadgeOffline);
-            let teamBadgeImage = matchInfoTeamsStack.addImage(teamBadgeValue);
-            teamBadgeImage.imageSize = new Size(14, 14);
-          }
-          if (userSettings.showMatchesTeamsNames) {
-            matchInfoTeamsStack.addSpacer(2);
-            const teamsAwayValue = replaceText(match.away.name);
-            addFormattedText(matchInfoTeamsStack, teamsAwayValue, Font.regularSystemFont(12), null, 1, false);
-          }
+            if (userSettings.showMatchesTeamsNames) {
+                const teamsHomeValue = replaceText(match.home.name);
+                addFormattedText(matchInfoTeamsStack, teamsHomeValue, Font.regularSystemFont(12), null, 1, false);
+                matchInfoTeamsStack.addSpacer(2);
+            }
+            if (userSettings.showMatchesTeamsBadges) {
+                let teamBadgeUrl = encodeURI(`${baseApiUrl}/images/team/${match.home.id}_xsmall`);
+                let teamBadgeOffline = `badge${title}Home.png`;
+                let teamBadgeValue = await getImage(teamBadgeUrl, teamBadgeOffline);
+                let teamBadgeImage = matchInfoTeamsStack.addImage(teamBadgeValue);
+                teamBadgeImage.imageSize = new Size(14, 14);
+                matchInfoTeamsStack.addSpacer(2);
+            }
+            const teamsSeparatorValue = "-";
+            addFormattedText(matchInfoTeamsStack, teamsSeparatorValue, Font.regularSystemFont(12), null, null, false);
+            if (userSettings.showMatchesTeamsBadges) {
+                matchInfoTeamsStack.addSpacer(2);
+                let teamBadgeUrl = encodeURI(`${baseApiUrl}/images/team/${match.away.id}_xsmall`);
+                let teamBadgeOffline = `badge${title}Away.png`;
+                let teamBadgeValue = await getImage(teamBadgeUrl, teamBadgeOffline);
+                let teamBadgeImage = matchInfoTeamsStack.addImage(teamBadgeValue);
+                teamBadgeImage.imageSize = new Size(14, 14);
+            }
+            if (userSettings.showMatchesTeamsNames) {
+                matchInfoTeamsStack.addSpacer(2);
+                const teamsAwayValue = replaceText(match.away.name);
+                addFormattedText(matchInfoTeamsStack, teamsAwayValue, Font.regularSystemFont(12), null, 1, false);
+            }
         }
         matchInfoStack.addSpacer(1);
 
@@ -366,12 +366,12 @@ async function addWidgetTable(stack) {
     const leagueTitleValue = leagueTitle.toUpperCase();
     addFormattedText(leagueTitleStack, leagueTitleValue, Font.semiboldSystemFont(11), Color.dynamic(new Color(userSettings.leagueTitleColor.light), new Color(userSettings.leagueTitleColor.dark)), 1, false);
     if (userSettings.showLeagueSubtitle && leagueSubtitle) {
-      leagueTitleStack.addSpacer(2);
-      const leagueSeparatorValue = "-";
-      addFormattedText(leagueTitleStack, leagueSeparatorValue, Font.semiboldSystemFont(11), Color.dynamic(new Color(userSettings.leagueTitleColor.light), new Color(userSettings.leagueTitleColor.dark)), 1, false);
-      leagueTitleStack.addSpacer(2);
-      const leagueSubtitleValue = leagueSubtitle.toUpperCase();
-      addFormattedText(leagueTitleStack, leagueSubtitleValue, Font.semiboldSystemFont(11), Color.dynamic(new Color(userSettings.leagueTitleColor.light), new Color(userSettings.leagueTitleColor.dark)), 1, false);
+        leagueTitleStack.addSpacer(2);
+        const leagueSeparatorValue = "-";
+        addFormattedText(leagueTitleStack, leagueSeparatorValue, Font.semiboldSystemFont(11), Color.dynamic(new Color(userSettings.leagueTitleColor.light), new Color(userSettings.leagueTitleColor.dark)), 1, false);
+        leagueTitleStack.addSpacer(2);
+        const leagueSubtitleValue = leagueSubtitle.toUpperCase();
+        addFormattedText(leagueTitleStack, leagueSubtitleValue, Font.semiboldSystemFont(11), Color.dynamic(new Color(userSettings.leagueTitleColor.light), new Color(userSettings.leagueTitleColor.dark)), 1, false);
     }
     leagueStack.addSpacer(1);
 
@@ -392,11 +392,11 @@ async function addWidgetTable(stack) {
             if (j == 0 && i == highlighted) {
                 if (userSettings.showRowPositionHighlight) leagueTableRowStack.backgroundColor = Color.dynamic(new Color(userSettings.highlightedRowColor.light), new Color(userSettings.highlightedRowColor.dark));
                 if (userSettings.showCirclePositionHighlight) {
-                  const highlightedPositionImage = getPositionHighlight((teamLeaguePosition).toString(), Color.dynamic(new Color(userSettings.highlightedPositionColor.light), new Color(userSettings.highlightedPositionColor.dark)));
-                  cellDataStack.addImage(highlightedPositionImage);
+                    const highlightedPositionImage = getPositionHighlight((teamLeaguePosition).toString(), Color.dynamic(new Color(userSettings.highlightedPositionColor.light), new Color(userSettings.highlightedPositionColor.dark)));
+                    cellDataStack.addImage(highlightedPositionImage);
                 } else {
-                  let cellDataValue = `${table[i][j]}`;
-                  addFormattedText(cellDataStack, cellDataValue, Font.semiboldSystemFont(10), null, null, true);
+                    let cellDataValue = `${table[i][j]}`;
+                    addFormattedText(cellDataStack, cellDataValue, Font.semiboldSystemFont(10), null, null, true);
                 }
             } else if (j == 1 && i > 0) {
                 let teamBadgeUrl = encodeURI(`${baseApiUrl}/images/team/${table[i][j]}_xsmall`);
@@ -417,13 +417,13 @@ function getTable(leagueTable, teamLeaguePosition) {
     const table = [
         // Table header
         [
-          "#",
-          dictionary.tableHeaderTeam,
-          dictionary.tableHeaderPlayed,
-          dictionary.tableHeaderWins,
-          dictionary.tableHeaderDraws,
-          dictionary.tableHeaderLosses,
-          dictionary.tableHeaderPoints
+            "#",
+            dictionary.tableHeaderTeam,
+            dictionary.tableHeaderPlayed,
+            dictionary.tableHeaderWins,
+            dictionary.tableHeaderDraws,
+            dictionary.tableHeaderLosses,
+            dictionary.tableHeaderPoints
         ],
     ];
     const teamsToShow = Math.min(5, leagueTable.length);
@@ -455,15 +455,15 @@ function getTable(leagueTable, teamLeaguePosition) {
     for (let i = initial; i < final + 1; i += 1) {
         // Add table data, row by row
         table.push(
-          [
-            i,
-            leagueTable[i - 1].id,
-            leagueTable[i - 1].played,
-            leagueTable[i - 1].wins,
-            leagueTable[i - 1].draws,
-            leagueTable[i - 1].losses,
-            leagueTable[i - 1].pts
-          ]
+            [
+                i,
+                leagueTable[i - 1].id,
+                leagueTable[i - 1].played,
+                leagueTable[i - 1].wins,
+                leagueTable[i - 1].draws,
+                leagueTable[i - 1].losses,
+                leagueTable[i - 1].pts
+            ]
         );
     }
     return [table, highlighted];
@@ -701,7 +701,7 @@ function getDictionary(language) {
             tableHeaderLosses: "L",
             tableHeaderPoints: "P",
             noDataAvailable: "No data",
-            nointernetConnection: "Internet connection required"
+            noInternetConnection: "Internet connection required"
         },
         pt: {
             championsLeague: "Liga Campeões",
@@ -732,7 +732,7 @@ function getDictionary(language) {
             tableHeaderLosses: "D",
             tableHeaderPoints: "P",
             noDataAvailable: "Sem dados",
-            nointernetConnection: "Necessária ligação à internet"
+            noInternetConnection: "Necessária ligação à internet"
         },
         es: {
             championsLeague: "Champions League",
@@ -763,7 +763,7 @@ function getDictionary(language) {
             tableHeaderLosses: "P",
             tableHeaderPoints: "PT",
             noDataAvailable: "Sin datos",
-            nointernetConnection: "Requiere conexión a internet"
+            noInternetConnection: "Requiere conexión a internet"
         },
         fr: {
             championsLeague: "Ligue Champions",
@@ -794,7 +794,7 @@ function getDictionary(language) {
             tableHeaderLosses: "P",
             tableHeaderPoints: "PT",
             noDataAvailable: "Pas de données",
-            nointernetConnection: "Connexion Internet requise"
+            noInternetConnection: "Connexion Internet requise"
         },
         de: {
             championsLeague: "Champions League",
@@ -825,7 +825,7 @@ function getDictionary(language) {
             tableHeaderLosses: "V",
             tableHeaderPoints: "P",
             noDataAvailable: "Keine Daten",
-            nointernetConnection: "Internetverbindung erforderlich"
+            noInternetConnection: "Internetverbindung erforderlich"
         },
         cs: {
             championsLeague: "Liga mistrů",
@@ -856,7 +856,38 @@ function getDictionary(language) {
             tableHeaderLosses: "P",
             tableHeaderPoints: "B",
             noDataAvailable: "Žádná data",
-            nointernetConnection: "Vyžadováno internetové připojení"
+            noInternetConnection: "Vyžadováno internetové připojení"
+        },
+        ko: {
+            championsLeague: "챔피언스 리그",
+            championsLeagueQualification: "챔피언스 리그 예선",
+            europaLeague: "유로파 리그",
+            europaLeagueQualification: "유로파 리그 예선",
+            uefaSuperCup: "UEFA 슈퍼 컵",
+            cup: "컵",
+            leagueCup: "리그 컵",
+            superCup: "슈퍼 컵",
+            clubFriendlies: "친선",
+            quarterFinal: "8강",
+            semiFinal: "4강",
+            final: "결승",
+            matchTitleNext: "다음",
+            matchRound: "R",
+            home: "홈",
+            away: "원",
+            matchDateToday: "오늘",
+            matchDateTomorrow: "내일",
+            postponed: "연기됨",
+            cancelled: "취소됨",
+            halfTime: "하프",
+            tableHeaderTeam: "팀",
+            tableHeaderPlayed: "경기",
+            tableHeaderWins: "승",
+            tableHeaderDraws: "무",
+            tableHeaderLosses: "패",
+            tableHeaderPoints: "점",
+            noDataAvailable: "정보 없음",
+            noInternetConnection: "인터넷 연결 필요"
         }
     };
     return [Object.keys(text), text[language]];
