@@ -45,14 +45,15 @@ Futcal is available in different widget sizes.
 
 Futcal is prepared to support multiple languages, based on your device system settings. This applies to all default UI elements but also specific API information (e.g. competition or round name).
 Currently the following languages are available:
-* 🇬🇧 English
-* 🇵🇹 Portuguese
-* 🇪🇸 Spanish
-* 🇫🇷 French (thanks to [@Write](https://github.com/Write) for the help translating)
-* 🇩🇪 German (thanks to [@lcshmn](https://github.com/lcshmn) and [@ostoer](https://github.com/ostoer) for the help translating)
-* 🇨🇿 Czech
+* Czech
+* English
+* French (thanks to [@Write](https://github.com/Write) for the help translating)
+* German (thanks to [@lcshmn](https://github.com/lcshmn) and [@ostoer](https://github.com/ostoer) for the help translating)
+* Korean (thanks to [@dp0973](https://github.com/dp0973) for the help translating)
+* Portuguese
+* Spanish
 
-If you would like other languages to be added feel free to share the translation strings and I will gladly add them.
+If you would like other languages to be added feel free to create a ticket and share the translation strings. I will gladly add them.
 
 Note: If your device language is not supported, the widget will default to English.
 
