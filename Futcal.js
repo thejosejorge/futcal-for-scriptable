@@ -22,6 +22,8 @@ const defaultSettings = {
     showLeagueSubtitle: false,
     showCirclePositionHighlight: true,
     showRowPositionHighlight: false,
+    dateFormatWithWeekday : "MM/dd(EEE)",
+    dateFormatWithoutWeekday : "MM/dd",
 
     backgroundColor: {
         light: "#ffffff",
@@ -556,7 +558,7 @@ function formatDate(date) {
         return dictionary.matchDateTomorrow;
     } else {
         const dateFormatter = new DateFormatter();
-        dateFormatter.dateFormat = userSettings.showMatchesDayOfWeek ? "EEE dd/MMM" : "dd/MMM";
+        dateFormatter.dateFormat = userSettings.showMatchesDayOfWeek ? userSettings.dateFormatWithWeekday : userSettings.dateFormatWithoutWeekday;
         // Format will depend on device language
         dateFormatter.locale = (language);
         return dateFormatter.string(date);
@@ -885,7 +887,7 @@ function getDictionary(language) {
             tableHeaderWins: "승",
             tableHeaderDraws: "무",
             tableHeaderLosses: "패",
-            tableHeaderPoints: "점",
+            tableHeaderPoints: "승점",
             noDataAvailable: "정보 없음",
             noInternetConnection: "인터넷 연결 필요"
         }
