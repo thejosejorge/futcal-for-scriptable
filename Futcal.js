@@ -238,7 +238,7 @@ async function addWidgetMatch(matchesStack, match, title) {
         matchInfoTeamsStack.centerAlignContent();
         if (userSettings.showMatchesOnlyOpposition) {
             if (userSettings.showMatchesTeamsBadges) {
-                let teamBadgeUrl = match.home.id == teamData.details.id ? encodeURI(`${baseApiUrl}/images/team/${match.away.id}_xsmall`) : encodeURI(`${baseApiUrl}/images/team/${match.home.id}_xsmall`);
+                let teamBadgeUrl = match.home.id == teamData.details.id ? encodeURI(`https://images.fotmob.com/image_resources/logo/teamlogo/${match.away.id}_xsmall.png`) : encodeURI(`https://images.fotmob.com/image_resources/logo/teamlogo/${match.home.id}_xsmall.png`);
                 let teamBadgeOffline = match.home.id == teamData.details.id ? `badge${title}Away.png` : `badge${title}Home.png`;
                 let teamBadgeValue = await getImage(teamBadgeUrl, teamBadgeOffline);
                 let teamBadgeImage = matchInfoTeamsStack.addImage(teamBadgeValue);
@@ -261,7 +261,7 @@ async function addWidgetMatch(matchesStack, match, title) {
                 matchInfoTeamsStack.addSpacer(2);
             }
             if (userSettings.showMatchesTeamsBadges) {
-                let teamBadgeUrl = encodeURI(`${baseApiUrl}/images/team/${match.home.id}_xsmall`);
+                let teamBadgeUrl = encodeURI(`https://images.fotmob.com/image_resources/logo/teamlogo/${match.home.id}_xsmall.png`);
                 let teamBadgeOffline = `badge${title}Home.png`;
                 let teamBadgeValue = await getImage(teamBadgeUrl, teamBadgeOffline);
                 let teamBadgeImage = matchInfoTeamsStack.addImage(teamBadgeValue);
@@ -272,7 +272,7 @@ async function addWidgetMatch(matchesStack, match, title) {
             addFormattedText(matchInfoTeamsStack, teamsSeparatorValue, Font.regularSystemFont(12), null, null, false);
             if (userSettings.showMatchesTeamsBadges) {
                 matchInfoTeamsStack.addSpacer(2);
-                let teamBadgeUrl = encodeURI(`${baseApiUrl}/images/team/${match.away.id}_xsmall`);
+                let teamBadgeUrl = encodeURI(`https://images.fotmob.com/image_resources/logo/teamlogo/${match.away.id}_xsmall.png`);
                 let teamBadgeOffline = `badge${title}Away.png`;
                 let teamBadgeValue = await getImage(teamBadgeUrl, teamBadgeOffline);
                 let teamBadgeImage = matchInfoTeamsStack.addImage(teamBadgeValue);
@@ -399,7 +399,7 @@ async function addWidgetTable(stack) {
                     addFormattedText(cellDataStack, cellDataValue, Font.semiboldSystemFont(10), null, null, true);
                 }
             } else if (j == 1 && i > 0) {
-                let teamBadgeUrl = encodeURI(`${baseApiUrl}/images/team/${table[i][j]}_xsmall`);
+                let teamBadgeUrl = encodeURI(`https://images.fotmob.com/image_resources/logo/teamlogo/${table[i][j]}_xsmall.png`);
                 let teamBadgeOffline = `badge_${i}.png`;
                 let teamBadgeValue = await getImage(teamBadgeUrl, teamBadgeOffline);
                 let teamBadgeImage = cellDataStack.addImage(teamBadgeValue);
