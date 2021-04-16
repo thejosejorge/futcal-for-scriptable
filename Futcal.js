@@ -162,17 +162,8 @@ async function createWidget() {
 
 // Create matches view
 async function addWidgetMatches(globalStack) {
-    const teamMatches = teamData.fixtures;
-    // Find next match (first match not started and not cancelled)
-    const nextMatchIndex = teamMatches.findIndex(obj => obj.notStarted && !obj.status.cancelled);
-    const nextMatch = teamMatches[nextMatchIndex];
-    // Assume previous match is the one before the next
-    let previousMatchIndex = nextMatchIndex - 1;
-    if (nextMatch == undefined) {
-        // If no next match available season is over, previous match is the last of the season, if exists
-        previousMatchIndex = teamMatches.length - 1;
-    }
-    const previousMatch = teamMatches[previousMatchIndex];
+    const nextMatch = teamData.nextMatch;
+    const previousMatch = teamData.fixtures[0];
 
     const matchesStack = globalStack.addStack();
     matchesStack.url = teamMatchesTapUrl;
@@ -296,10 +287,10 @@ async function addWidgetMatch(matchesStack, match, title) {
                 addFormattedText(matchInfoDetailsStack, detailsCancellationValue, Font.regularSystemFont(12), Color.gray(), null, false);
             } else {
                 // If match is in the future show date and time
-                const detailsDateValue = formatDate(new Date(matchDetails.content.matchFacts.infoBox["Match Date"]));
+                const detailsDateValue = formatDate(new Date((matchDetails.content.matchFacts.infoBox["Match Date"]).replaceAll(".", "")));
                 addFormattedText(matchInfoDetailsStack, detailsDateValue, Font.regularSystemFont(12), Color.gray(), null, false);
                 matchInfoDetailsStack.addSpacer(3);
-                const detailsTimeValue = formatTime(new Date(matchDetails.content.matchFacts.infoBox["Match Date"]));
+                const detailsTimeValue = formatTime(new Date((matchDetails.content.matchFacts.infoBox["Match Date"]).replaceAll(".", "")));
                 addFormattedText(matchInfoDetailsStack, detailsTimeValue, Font.regularSystemFont(12), Color.gray(), null, false);
             }
         } else {
@@ -885,7 +876,7 @@ function getDictionary(language) {
             tableHeaderWins: "승",
             tableHeaderDraws: "무",
             tableHeaderLosses: "패",
-            tableHeaderPoints: "점",
+            tableHeaderPoints: "승점",
             noDataAvailable: "정보 없음",
             noInternetConnection: "인터넷 연결 필요"
         }
