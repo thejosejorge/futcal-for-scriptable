@@ -91,7 +91,7 @@ const teamData = await getData(teamDataApiUrl, "teamData.json");
 const teamTapUrl = encodeURI(`${baseApiUrl}/teams/${userSettings.teamId}/overview`);
 const teamMatchesTapUrl = encodeURI(`${baseApiUrl}/teams/${userSettings.teamId}/fixtures`);
 let leagueTableTapUrl;
-if (teamData) {
+if (teamData && teamData.tableData) {
     const leagueOverviewUrl = encodeURI(`${baseApiUrl}${teamData.tableData.tables[0].pageUrl}`);
     leagueTableTapUrl = leagueOverviewUrl.replace("overview", "table");
 }
@@ -323,6 +323,9 @@ async function addWidgetMatch(matchesStack, match, title) {
 }
 
 async function addWidgetTable(stack) {
+  const leagueStack = stack.addStack();
+  leagueStack.layoutVertically();
+  if(teamData.tableData) {
     let leagueTable = teamData.tableData.tables[0].table;
     let leagueTitle = teamData.tableData.tables[0].leagueName;
     let leagueSubtitle;
@@ -348,8 +351,6 @@ async function addWidgetTable(stack) {
         teamLeaguePosition = teamOnLeague.idx;
     }
 
-    const leagueStack = stack.addStack();
-    leagueStack.layoutVertically();
     leagueStack.url = leagueTableTapUrl;
     leagueStack.addSpacer(2.5);
     const leagueTitleStack = leagueStack.addStack();
@@ -401,6 +402,15 @@ async function addWidgetTable(stack) {
             }
         }
     }
+  } else {
+      leagueStack.addSpacer();
+      const noDataStack = leagueStack.addStack();
+      noDataStack.addSpacer();
+      const noMatchesValue = dictionary.noDataAvailable;
+      addFormattedText(noDataStack, noMatchesValue, Font.regularSystemFont(12), null, 1, false);
+      noDataStack.addSpacer();
+      leagueStack.addSpacer();
+  }
 }
 
 // Build the league table (Position, Team, Matches Played, Wins, Draws, Losses, Points)
