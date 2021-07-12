@@ -214,13 +214,13 @@ async function addWidgetMatch(matchesStack, match, title) {
         matchInfoStack.layoutVertically();
         const matchInfoCompetitionStack = matchInfoStack.addStack();
         matchInfoCompetitionStack.centerAlignContent();
-        const competitionValue = shortenLeagueRound(matchDetails.content.matchFacts.infoBox.Tournament.text);
-        const competitionNameValue = competitionValue[0];
+        const competitionRoundValue = shortenLeagueRound(matchDetails.content.matchFacts.infoBox.Tournament.round);
+        const competitionNameValue = matchDetails.content.matchFacts.infoBox.Tournament.leagueName;
         addFormattedText(matchInfoCompetitionStack, competitionNameValue, Font.semiboldSystemFont(13), null, 1, false);
-        if (userSettings.showMatchesRound && competitionValue[1]) {
+        if (userSettings.showMatchesRound && competitionRoundValue) {
             matchInfoCompetitionStack.addSpacer(2);
-            const competitionRoundValue = `(${competitionValue[1]})`;
-            addFormattedText(matchInfoCompetitionStack, competitionRoundValue, Font.semiboldSystemFont(13), null, 1, false);
+            const competitionRoundValueFormatted = `(${competitionRoundValue})`;
+            addFormattedText(matchInfoCompetitionStack, competitionRoundValueFormatted, Font.semiboldSystemFont(13), null, 1, false);
         }
         matchInfoStack.addSpacer(1);
 
@@ -605,14 +605,12 @@ function setWidgetBackground(widget) {
 }
 
 // Prepare league and round name to fit in widget
-function shortenLeagueRound(leagueRoundName) {
+function shortenLeagueRound(leagueRound) {
     // Clean extra spaces found on FotMob API responses
-    leagueRoundName = leagueRoundName.replace(/ +(?= )/g, '');
-    // Split League and Round information
-    const leagueName = leagueRoundName.split(" - ")[0];
-    let roundName = leagueRoundName.split(" - ")[1];
+    let roundName = leagueRound
     if (roundName) {
         // Clean up round name
+        roundName = roundName.replace(/ +(?= )/g, '');
         if (roundName.includes("Round")) {
             if (roundName.includes("of")) {
                 // Replace "Round of X" with "1/X"
@@ -622,9 +620,9 @@ function shortenLeagueRound(leagueRoundName) {
                 roundName = `${dictionary.matchRound}${roundName.split("Round ")[1]}`;
             }
         }
-        return [replaceText(leagueName), replaceText(roundName)];
+        return replaceText(roundName);
     } else {
-        return [replaceText(leagueName), false];
+        return false;
     }
 }
 
