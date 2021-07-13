@@ -214,12 +214,11 @@ async function addWidgetMatch(matchesStack, match, title) {
         matchInfoStack.layoutVertically();
         const matchInfoCompetitionStack = matchInfoStack.addStack();
         matchInfoCompetitionStack.centerAlignContent();
-        const competitionValue = shortenLeagueRound(matchDetails.content.matchFacts.infoBox.Tournament.text);
-        const competitionNameValue = competitionValue[0];
+        const competitionNameValue = replaceText(matchDetails.content.matchFacts.infoBox.Tournament.leagueName);
         addFormattedText(matchInfoCompetitionStack, competitionNameValue, Font.semiboldSystemFont(13), null, 1, false);
-        if (userSettings.showMatchesRound && competitionValue[1]) {
+        if (userSettings.showMatchesRound && matchDetails.content.matchFacts.infoBox.Tournament.round) {
             matchInfoCompetitionStack.addSpacer(2);
-            const competitionRoundValue = `(${competitionValue[1]})`;
+            const competitionRoundValue = `(${shortenRoundName(matchDetails.content.matchFacts.infoBox.Tournament.round)})`;
             addFormattedText(matchInfoCompetitionStack, competitionRoundValue, Font.semiboldSystemFont(13), null, 1, false);
         }
         matchInfoStack.addSpacer(1);
@@ -605,14 +604,7 @@ function setWidgetBackground(widget) {
 }
 
 // Prepare league and round name to fit in widget
-function shortenLeagueRound(leagueRoundName) {
-    // Clean extra spaces found on FotMob API responses
-    leagueRoundName = leagueRoundName.replace(/ +(?= )/g, '');
-    // Split League and Round information
-    const leagueName = leagueRoundName.split(" - ")[0];
-    let roundName = leagueRoundName.split(" - ")[1];
-    if (roundName) {
-        // Clean up round name
+function shortenRoundName(roundName) {
         if (roundName.includes("Round")) {
             if (roundName.includes("of")) {
                 // Replace "Round of X" with "1/X"
@@ -622,10 +614,7 @@ function shortenLeagueRound(leagueRoundName) {
                 roundName = `${dictionary.matchRound}${roundName.split("Round ")[1]}`;
             }
         }
-        return [replaceText(leagueName), replaceText(roundName)];
-    } else {
-        return [replaceText(leagueName), false];
-    }
+        return replaceText(roundName);
 }
 
 // Shorten and / or translate specific information
