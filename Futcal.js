@@ -163,7 +163,15 @@ async function createWidget() {
 // Create matches view
 async function addWidgetMatches(globalStack) {
     const nextMatch = teamData.nextMatch;
-    const previousMatch = teamData.fixtures[0];
+
+    let previousMatchIndex = 0;
+    for (let i = 0; i < teamData.fixtures.length; i += 1) {
+        if (teamData.fixtures[i].id === nextMatch.id) {
+            previousMatchIndex = i - 1;
+            break;
+        }
+    }
+    const previousMatch = teamData.fixtures[previousMatchIndex];
 
     const matchesStack = globalStack.addStack();
     matchesStack.url = teamMatchesTapUrl;
@@ -325,7 +333,7 @@ async function addWidgetTable(stack) {
   const leagueStack = stack.addStack();
   leagueStack.layoutVertically();
   if(teamData.tableData) {
-    let leagueTable = teamData.tableData.tables[0].table;
+    let leagueTable = teamData.tableData.tables[0].table.all;
     let leagueTitle = teamData.tableData.tables[0].leagueName;
     let leagueSubtitle;
     // If league table is not found assume it is a special case with more than one table available
