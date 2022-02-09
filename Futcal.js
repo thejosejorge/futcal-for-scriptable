@@ -92,7 +92,7 @@ const teamTapUrl = encodeURI(`${baseApiUrl}/teams/${userSettings.teamId}/overvie
 const teamMatchesTapUrl = encodeURI(`${baseApiUrl}/teams/${userSettings.teamId}/fixtures`);
 let leagueTableTapUrl;
 if (teamData && teamData.tableData) {
-    const leagueOverviewUrl = encodeURI(`${baseApiUrl}${teamData.tableData.tables[0].pageUrl}`);
+    const leagueOverviewUrl = encodeURI(`${baseApiUrl}${teamData.tableData[0].pageUrl}`);
     leagueTableTapUrl = leagueOverviewUrl.replace("overview", "table");
 }
 
@@ -333,26 +333,26 @@ async function addWidgetTable(stack) {
   const leagueStack = stack.addStack();
   leagueStack.layoutVertically();
   if(teamData.tableData) {
-    let isSingleTable = teamData.tableData.tables[0].table;
+    let isSingleTable = teamData.tableData[0].table;
     let leagueTable;
-    let leagueTitle = teamData.tableData.tables[0].leagueName;
+    let leagueTitle = teamData.tableData[0].leagueName;
     let leagueSubtitle;
     // If league table is not found assume it is a special case with more than one table available
     if (isSingleTable) {
-      leagueTable = teamData.tableData.tables[0].table.all;
+      leagueTable = teamData.tableData[0].table.all;
     }
     else {
         let teamFound;
         let tableIndex = 0;
-        for (let i = 0; i < teamData.tableData.tables[0].tables.length; i += 1) {
-            teamFound = (teamData.tableData.tables[0].tables[i].table.all).findIndex(obj => obj.id == teamData.details.id);
+        for (let i = 0; i < teamData.tableData[0].tables.length; i += 1) {
+            teamFound = (teamData.tableData[0].tables[i].table.all).findIndex(obj => obj.id == teamData.details.id);
             if (teamFound != -1) {
                 tableIndex = i;
                 break;
             }
         }
-        leagueTable = teamData.tableData.tables[0].tables[tableIndex].table.all;
-        leagueSubtitle = teamData.tableData.tables[0].tables[tableIndex].leagueName;
+        leagueTable = teamData.tableData[0].tables[tableIndex].table.all;
+        leagueSubtitle = teamData.tableData[0].tables[tableIndex].leagueName;
         leagueSubtitle = leagueSubtitle.startsWith("- ") ? leagueSubtitle.substring(2) : leagueSubtitle;
     }
     // Get team position in league
