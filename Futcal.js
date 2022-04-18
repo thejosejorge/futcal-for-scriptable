@@ -81,7 +81,7 @@ const dictionary = getDictionary(language)[1];
 
 // Define FotMob API URLs
 const baseApiUrl = encodeURI("https://www.fotmob.com");
-const teamDataApiUrl = encodeURI(`${baseApiUrl}/teams?id=${userSettings.teamId}&tab=overview&type=team&timeZone=${userSettings.timeZone}`);
+const teamDataApiUrl = encodeURI(`${baseApiUrl}/api/teams?id=${userSettings.teamId}&tab=overview&type=team&timeZone=${userSettings.timeZone}`);
 const matchDetailsApiUrl = encodeURI(`${baseApiUrl}/matchDetails?matchId=`);
 
 // Get team data
