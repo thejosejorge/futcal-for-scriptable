@@ -82,7 +82,7 @@ const dictionary = getDictionary(language)[1];
 // Define FotMob API URLs
 const baseApiUrl = encodeURI("https://www.fotmob.com");
 const teamDataApiUrl = encodeURI(`${baseApiUrl}/api/teams?id=${userSettings.teamId}&tab=overview&type=team&timeZone=${userSettings.timeZone}`);
-const matchDetailsApiUrl = encodeURI(`${baseApiUrl}/matchDetails?matchId=`);
+const matchDetailsApiUrl = encodeURI(`${baseApiUrl}/api/matchDetails?matchId=`);
 
 // Get team data
 const teamData = await getData(teamDataApiUrl, "teamData.json");
@@ -91,8 +91,8 @@ const teamData = await getData(teamDataApiUrl, "teamData.json");
 const teamTapUrl = encodeURI(`${baseApiUrl}/teams/${userSettings.teamId}/overview`);
 const teamMatchesTapUrl = encodeURI(`${baseApiUrl}/teams/${userSettings.teamId}/fixtures`);
 let leagueTableTapUrl;
-if (teamData && teamData.tableData) {
-    const leagueOverviewUrl = encodeURI(`${baseApiUrl}${teamData.tableData[0].pageUrl}`);
+if (teamData && teamData.table) {
+    const leagueOverviewUrl = encodeURI(`${baseApiUrl}${teamData.table[0].pageUrl}`);
     leagueTableTapUrl = leagueOverviewUrl.replace("overview", "table");
 }
 
@@ -164,12 +164,14 @@ async function createWidget() {
 async function addWidgetMatches(globalStack) {
     const nextMatch = teamData.nextMatch;
 
-    let previousMatchIndex = 0;
-    for (let i = 0; i < teamData.fixtures.length; i += 1) {
-        if (teamData.fixtures[i].id === nextMatch.id) {
-            previousMatchIndex = i - 1;
-            break;
-        }
+    let previousMatchIndex = teamData.fixtures.length - 1;
+    if (nextMatch) {
+      for (let i = 0; i < teamData.fixtures.length; i += 1) {
+          if (teamData.fixtures[i].id === nextMatch.id) {
+              previousMatchIndex = i - 1;
+              break;
+          }
+      }
     }
     const previousMatch = teamData.fixtures[previousMatchIndex];
 
@@ -332,27 +334,27 @@ async function addWidgetMatch(matchesStack, match, title) {
 async function addWidgetTable(stack) {
   const leagueStack = stack.addStack();
   leagueStack.layoutVertically();
-  if(teamData.tableData) {
-    let isSingleTable = teamData.tableData[0].table;
+  if(teamData.table) {
+    let isSingleTable = teamData.table[0].table;
     let leagueTable;
-    let leagueTitle = teamData.tableData[0].leagueName;
+    let leagueTitle = teamData.table[0].leagueName;
     let leagueSubtitle;
     // If league table is not found assume it is a special case with more than one table available
     if (isSingleTable) {
-      leagueTable = teamData.tableData[0].table.all;
+      leagueTable = teamData.table[0].table.all;
     }
     else {
         let teamFound;
         let tableIndex = 0;
-        for (let i = 0; i < teamData.tableData[0].tables.length; i += 1) {
-            teamFound = (teamData.tableData[0].tables[i].table.all).findIndex(obj => obj.id == teamData.details.id);
+        for (let i = 0; i < teamData.table[0].tables.length; i += 1) {
+            teamFound = (teamData.table[0].tables[i].table.all).findIndex(obj => obj.id == teamData.details.id);
             if (teamFound != -1) {
                 tableIndex = i;
                 break;
             }
         }
-        leagueTable = teamData.tableData[0].tables[tableIndex].table.all;
-        leagueSubtitle = teamData.tableData[0].tables[tableIndex].leagueName;
+        leagueTable = teamData.table[0].tables[tableIndex].table.all;
+        leagueSubtitle = teamData.table[0].tables[tableIndex].leagueName;
         leagueSubtitle = leagueSubtitle.startsWith("- ") ? leagueSubtitle.substring(2) : leagueSubtitle;
     }
     // Get team position in league
