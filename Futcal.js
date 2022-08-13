@@ -335,13 +335,13 @@ async function addWidgetTable(stack) {
   const leagueStack = stack.addStack();
   leagueStack.layoutVertically();
   if(teamData.table) {
-    let isSingleTable = teamData.table[0].table;
+    let isSingleTable = teamData.table[0].data.table;
     let leagueTable;
-    let leagueTitle = teamData.table[0].leagueName;
+    let leagueTitle = teamData.table[0].data.leagueName;
     let leagueSubtitle;
     // If league table is not found assume it is a special case with more than one table available
     if (isSingleTable) {
-      leagueTable = teamData.table[0].table.all;
+      leagueTable = teamData.table[0].data.table.all;
     }
     else {
         let teamFound;
